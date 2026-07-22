@@ -23,6 +23,8 @@ export interface Profile {
   ageWord: string // слово после числа: "год" / "года" / "лет" — своё для каждой анкеты
   height: number // рост в сантиметрах
   languages: string // на каких языках говорит человек, через запятую
+  interestedInYou?: boolean // "заранее" лайкнул бы вас в ответ - для проверки механики совпадений
+  // на тестовых данных (по-настоящему это будет известно только после реального лайка с той стороны)
 }
 
 // Список анкет, которые покажем в ленте
@@ -37,6 +39,7 @@ export const profiles: Profile[] = [
     ageWord: 'года',
     height: 168,
     languages: 'рус, eng',
+    interestedInYou: true,
   },
   {
     gender: 'male',
@@ -67,6 +70,7 @@ export const profiles: Profile[] = [
     ageWord: 'лет',
     height: 179,
     languages: 'рус',
+    interestedInYou: true,
   },
   {
     gender: 'female',
@@ -98,6 +102,7 @@ export const profiles: Profile[] = [
     ageWord: 'года',
     height: 170,
     languages: 'рус, eng, tur',
+    interestedInYou: true,
   },
   {
     gender: 'male',

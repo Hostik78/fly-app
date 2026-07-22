@@ -8,9 +8,12 @@ import { DotsIcon, PersonIcon, RulerIcon, HeartIcon } from './icons'
 // а вот отметку "лайкнул/не лайкнул" карточка запоминает сама — это её личное состояние.
 interface ProfileCardProps {
   profile: Profile
+  // Вызывается только когда карточку ЛАЙКНУЛИ (не при снятии лайка) - нужно,
+  // чтобы наверху (в App.tsx) можно было проверить, не совпадение ли это.
+  onLike?: (profile: Profile) => void
 }
 
-export function ProfileCard({ profile }: ProfileCardProps) {
+export function ProfileCard({ profile, onLike }: ProfileCardProps) {
   // liked - отметил ли пользователь эту анкету лайком. По умолчанию - нет.
   const [liked, setLiked] = useState(false)
   // Выбираем цвет "фото"-плашки в зависимости от пола анкеты
@@ -73,10 +76,18 @@ export function ProfileCard({ profile }: ProfileCardProps) {
         </div>
 
         {/* Кнопка "лайк" в правом нижнем углу карточки.
-            При клике переключаем liked туда-обратно и слегка увеличиваем кнопку - для приятной отдачи. */}
+            При клике переключаем liked туда-обратно и слегка увеличиваем кнопку - для приятной отдачи.
+            onLike вызываем только когда лайк ПОЯВЛЯЕТСЯ (не при снятии) - иначе "совпадение"
+            срабатывало бы повторно при каждом случайном клике туда-обратно. */}
         <div className="flex justify-end mt-3">
           <button
-            onClick={() => setLiked((wasLiked) => !wasLiked)}
+            onClick={() =>
+              setLiked((wasLiked) => {
+                const nowLiked = !wasLiked
+                if (nowLiked) onLike?.(profile)
+                return nowLiked
+              })
+            }
             className={`w-11 h-11 rounded-fly-md flex items-center justify-center transition-transform duration-200 active:scale-90 hover:scale-105 ${
               liked ? 'bg-fly-coral scale-110' : 'bg-fly-tint-coral scale-100'
             }`}

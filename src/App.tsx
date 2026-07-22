@@ -6,7 +6,7 @@ import { AccountScreen } from './components/AccountScreen'
 import { AppShell } from './components/AppShell'
 import { CreateStatusScreen } from './components/CreateStatusScreen'
 import { DevicePreview } from './components/DevicePreview'
-import type { ProfileCategory } from './data/profiles'
+import type { Profile, ProfileCategory } from './data/profiles'
 
 // RequireStatus — "охранник" маршрутов: пока человек не опубликовал свою заметку
 // (hasPosted === false), любая попытка попасть на Ленту/Сообщения/Аккаунт
@@ -29,6 +29,9 @@ function RequireStatus({ hasPosted }: { hasPosted: boolean }) {
 // пользователей, эту обёртку можно будет просто убрать.
 function App() {
   const [hasPosted, setHasPosted] = useState(false)
+  // Список анкет, с которыми уже "совпали" (взаимный лайк) - живёт здесь, а не в самой
+  // Ленте, потому что его должны видеть и Лента, и Сообщения одновременно.
+  const [matches, setMatches] = useState<Profile[]>([])
 
   function handlePublish(quote: string, category: ProfileCategory) {
     // Пока просто отмечаем, что публикация состоялась - открываем доступ к ленте.
@@ -37,6 +40,19 @@ function App() {
     void quote
     void category
     setHasPosted(true)
+  }
+
+  // Вызывается при лайке карточки на Ленте. Совпадение случается, только если человек
+  // на тестовых данных отмечен как "заранее заинтересован в вас" (interestedInYou) -
+  // по-настоящему это будет известно лишь после реального лайка с той стороны.
+  function handleLike(profile: Profile) {
+    if (!profile.interestedInYou) return
+    setMatches((current) => {
+      // profile.quote используется как уникальный идентификатор анкеты (у тестовых
+      // данных пока нет отдельного поля id) - не добавляем одно и то же совпадение дважды.
+      if (current.some((match) => match.quote === profile.quote)) return current
+      return [...current, profile]
+    })
   }
 
   return (
@@ -60,7 +76,7 @@ function App() {
             element={hasPosted ? <Navigate to="/" replace /> : <CreateStatusScreen onSubmit={handlePublish} />}
           />
           <Route element={<RequireStatus hasPosted={hasPosted} />}>
-            <Route element={<AppShell />}>
+            <Route element={<AppShell matches={matches} onLike={handleLike} />}>
               <Route index element={<FeedScreen />} />
               <Route path="messages" element={<MessagesScreen />} />
               <Route path="account" element={<AccountScreen />} />

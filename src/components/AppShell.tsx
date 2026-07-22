@@ -1,11 +1,26 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { GridIcon, MessageIcon, AccountIcon } from './icons'
+import type { Profile } from '../data/profiles'
+
+// Общие данные и функции, которые должны быть видны и Ленте, и Сообщениям одновременно
+// (иначе лайк на Ленте никак не мог бы "долететь" до списка переписок).
+// React Router передаёт это вниз через <Outlet context={...} />, а каждый экран
+// достаёт нужное через хук useOutletContext<AppOutletContext>().
+export interface AppOutletContext {
+  matches: Profile[] // с кем уже "совпали" (взаимный лайк)
+  onLike: (profile: Profile) => void // вызывается, когда поставили лайк на Ленте
+}
+
+interface AppShellProps {
+  matches: Profile[]
+  onLike: (profile: Profile) => void
+}
 
 // AppShell — общая "рамка" вокруг ЛЮБОГО экрана приложения: строка статуса телефона
 // сверху и нижняя навигация всегда на месте, а между ними — <Outlet /> (это специальное
 // место из React Router, куда подставляется нужный экран в зависимости от того,
 // какая вкладка выбрана: Лента / Сообщения / Аккаунт).
-export function AppShell() {
+export function AppShell({ matches, onLike }: AppShellProps) {
   return (
     <div className="h-full w-full bg-white flex flex-col overflow-hidden">
       {/* Имитация строки статуса телефона: время и код аэропорта (для атмосферы) */}
@@ -14,9 +29,10 @@ export function AppShell() {
         <span>SVO</span>
       </div>
 
-      {/* Сюда React Router подставляет текущий экран (Лента/Сообщения/Аккаунт) */}
+      {/* Сюда React Router подставляет текущий экран (Лента/Сообщения/Аккаунт).
+          context передаёт matches/onLike вниз, не проходя их через пропсы каждого маршрута. */}
       <div className="flex-1 overflow-hidden">
-        <Outlet />
+        <Outlet context={{ matches, onLike } satisfies AppOutletContext} />
       </div>
 
       {/* Нижняя навигация — не скроллится и не сжимается, всегда видна.

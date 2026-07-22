@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { useOutletContext } from 'react-router-dom'
 import { profiles as defaultProfiles, type Profile, type ProfileCategory } from '../data/profiles'
 import { categories } from '../data/categories'
 import { ProfileCard } from './ProfileCard'
 import { MenuIcon } from './icons'
+import type { AppOutletContext } from './AppShell'
 
 // Одна запись фильтра: id - для сравнения в коде, label - что видит пользователь.
 // 'all' не привязан ни к какой категории анкеты - это режим "показать всё".
@@ -29,6 +31,10 @@ interface FeedScreenProps {
 // никогда не скроллится. Скроллится только средняя часть со списком карточек —
 // шапка сверху и навигация снизу всегда остаются на месте, как в настоящих приложениях.
 export function FeedScreen({ profiles = defaultProfiles }: FeedScreenProps) {
+  // onLike пришёл из AppShell через контекст маршрута - именно он "поднимает" лайк
+  // наверх до App.tsx, где живёт список совпадений (matches).
+  const { onLike } = useOutletContext<AppOutletContext>()
+
   // Запоминаем, какой фильтр сейчас выбран. По умолчанию — "Все".
   const [activeFilter, setActiveFilter] = useState<FilterOption['id']>('all')
 
@@ -88,7 +94,7 @@ export function FeedScreen({ profiles = defaultProfiles }: FeedScreenProps) {
             просто резко "дёргались" на новый список. */}
         <div key={activeFilter} className="fade-in flex flex-col gap-5 pt-4 pb-4">
           {visibleProfiles.map((profile) => (
-            <ProfileCard key={profile.quote} profile={profile} />
+            <ProfileCard key={profile.quote} profile={profile} onLike={onLike} />
           ))}
 
           {/* Если анкет в выбранной категории нет — показываем понятное сообщение вместо пустоты */}
