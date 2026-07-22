@@ -1,32 +1,73 @@
 import { useState } from 'react'
+import { HashRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { FeedScreen } from './components/FeedScreen'
+import { MessagesScreen } from './components/MessagesScreen'
+import { AccountScreen } from './components/AccountScreen'
+import { AppShell } from './components/AppShell'
+import { CreateStatusScreen } from './components/CreateStatusScreen'
 import { DevicePreview } from './components/DevicePreview'
-import { ContentControls } from './components/ContentControls'
-import { profiles as defaultProfiles } from './data/profiles'
+import type { ProfileCategory } from './data/profiles'
+
+// RequireStatus — "охранник" маршрутов: пока человек не опубликовал свою заметку
+// (hasPosted === false), любая попытка попасть на Ленту/Сообщения/Аккаунт
+// перенаправляется на экран создания заметки. Это и есть механика Pure -
+// сначала пишешь сам, потом видишь остальных.
+function RequireStatus({ hasPosted }: { hasPosted: boolean }) {
+  if (!hasPosted) return <Navigate to="/new" replace />
+  return <Outlet />
+}
 
 // Корневой компонент приложения — то, с чего всё начинается.
 //
-// Сейчас FeedScreen обёрнут в DevicePreview — это временный инструмент для удобной
-// разработки (рамка телефона + выбор модели + зум + панель экспериментов), НЕ часть
-// самого приложения. Когда дойдём до публикации для настоящих пользователей, здесь
-// останется просто <FeedScreen />.
+// hasPosted живёт здесь же: как только человек опубликовал заметку на экране
+// CreateStatusScreen, мы открываем доступ ко всему остальному приложению.
+// Пока это просто состояние в памяти (сбрасывается при перезагрузке страницы) -
+// этого достаточно для первого шага, позже можно будет сохранять его понастоящему.
 //
-// Состояние анкет живёт именно здесь (а не в DevicePreview), потому что и панель
-// экспериментов, и сам экран ленты должны видеть одни и те же, актуальные данные.
+// DevicePreview снаружи — это НЕ часть самого приложения, а инструмент для удобной
+// разработки (рамка телефона). Когда дойдём до публикации для настоящих
+// пользователей, эту обёртку можно будет просто убрать.
 function App() {
-  const [profiles, setProfiles] = useState(defaultProfiles)
+  const [hasPosted, setHasPosted] = useState(false)
+
+  function handlePublish(quote: string, category: ProfileCategory) {
+    // Пока просто отмечаем, что публикация состоялась - открываем доступ к ленте.
+    // Сам текст заметки (quote/category) в будущем можно будет показывать в
+    // "Аккаунт" или использовать как собственную карточку в чужих лентах.
+    void quote
+    void category
+    setHasPosted(true)
+  }
 
   return (
-    <DevicePreview
-      controlsSlot={
-        <ContentControls
-          profiles={profiles}
-          onChange={setProfiles}
-          onReset={() => setProfiles(defaultProfiles)}
-        />
-      }
-    >
-      <FeedScreen profiles={profiles} />
+    <DevicePreview>
+      {/*
+        HashRouter, а не BrowserRouter: маршруты хранятся после знака "#" в адресе
+        (например, .../#/messages), а не в самом пути страницы. Это специально нужно,
+        когда сайт может открыться по любому, заранее неизвестному адресу (например,
+        опубликованный снимок на claude.ai) - роутер тогда не зависит от того,
+        по какому именно пути его открыли.
+      */}
+      <HashRouter>
+        <Routes>
+          {/*
+            Если заметка уже опубликована, а человек всё равно зашёл на /new (например, по старой
+            ссылке) - сразу отправляем его в ленту. Это же условие само сработает и сразу после
+            публикации: hasPosted меняется -> App перерисовывается -> элемент маршрута пересчитывается.
+          */}
+          <Route
+            path="/new"
+            element={hasPosted ? <Navigate to="/" replace /> : <CreateStatusScreen onSubmit={handlePublish} />}
+          />
+          <Route element={<RequireStatus hasPosted={hasPosted} />}>
+            <Route element={<AppShell />}>
+              <Route index element={<FeedScreen />} />
+              <Route path="messages" element={<MessagesScreen />} />
+              <Route path="account" element={<AccountScreen />} />
+            </Route>
+          </Route>
+        </Routes>
+      </HashRouter>
     </DevicePreview>
   )
 }

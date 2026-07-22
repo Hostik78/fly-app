@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { profiles as defaultProfiles, type Profile, type ProfileCategory } from '../data/profiles'
+import { categories } from '../data/categories'
 import { ProfileCard } from './ProfileCard'
-import { MenuIcon, GridIcon, MessageIcon, AccountIcon } from './icons'
+import { MenuIcon } from './icons'
 
 // Одна запись фильтра: id - для сравнения в коде, label - что видит пользователь.
 // 'all' не привязан ни к какой категории анкеты - это режим "показать всё".
@@ -10,16 +11,9 @@ interface FilterOption {
   label: string
 }
 
-// Полный список фильтров-таблеток над лентой.
-const filters: FilterOption[] = [
-  { id: 'all', label: 'Все' },
-  { id: 'communication', label: 'Общение' },
-  { id: 'romance', label: 'Романтика' },
-  { id: 'hobbies', label: 'Увлечения' },
-  { id: 'fellow-travelers', label: 'Попутчики' },
-  { id: 'networking', label: 'Нетворкинг' },
-  { id: 'friendship', label: 'Дружба' },
-]
+// Полный список фильтров-таблеток над лентой: "Все" + общий список категорий
+// (тот же самый, что используется при создании собственного статуса).
+const filters: FilterOption[] = [{ id: 'all', label: 'Все' }, ...categories]
 
 interface FeedScreenProps {
   // Список анкет необязателен: если не передать - используются встроенные тестовые данные.
@@ -46,20 +40,14 @@ export function FeedScreen({ profiles = defaultProfiles }: FeedScreenProps) {
   const activeFilterLabel = filters.find((filter) => filter.id === activeFilter)?.label ?? ''
 
   return (
-    // h-full - занимает всю высоту "экрана телефона", который задаёт родитель (DevicePreview).
-    // overflow-hidden - ничего не должно вылезать и растягивать рамку телефона наружу.
+    // h-full - занимает всю высоту области экрана, которую выделяет AppShell под контент.
+    // overflow-hidden - ничего не должно вылезать наружу.
     <div className="h-full w-full bg-white flex flex-col overflow-hidden">
 
       {/* Верхний блок (шапка, фильтры) не скроллится и не сжимается - flex-shrink-0 */}
       <div className="flex-shrink-0">
-        {/* Имитация строки статуса телефона: время и код аэропорта (для атмосферы) */}
-        <div className="h-11 flex items-end justify-between px-5 pb-2 text-xs text-fly-gray">
-          <span>9:41</span>
-          <span>SVO</span>
-        </div>
-
         {/* Шапка: название приложения слева, кнопка меню справа */}
-        <div className="flex items-center justify-between px-5 pt-1.5">
+        <div className="flex items-center justify-between px-5 pt-3">
           <div className="text-xl font-semibold">
             Fl<span className="text-fly-blue-deep">y</span>
           </div>
@@ -119,22 +107,6 @@ export function FeedScreen({ profiles = defaultProfiles }: FeedScreenProps) {
             </div>
           )}
         </div>
-      </div>
-
-      {/* Нижняя навигация из трёх вкладок — не скроллится и не сжимается, всегда видна */}
-      <div className="flex-shrink-0 flex justify-around items-center px-5 pt-4 pb-6 bg-white">
-        <button className="flex flex-col items-center gap-1 text-[10px] font-medium text-fly-ink">
-          <GridIcon />
-          Лента
-        </button>
-        <button className="flex flex-col items-center gap-1 text-[10px] font-medium text-fly-gray transition-colors hover:text-fly-ink">
-          <MessageIcon />
-          Сообщения
-        </button>
-        <button className="flex flex-col items-center gap-1 text-[10px] font-medium text-fly-gray transition-colors hover:text-fly-ink">
-          <AccountIcon />
-          Аккаунт
-        </button>
       </div>
     </div>
   )
