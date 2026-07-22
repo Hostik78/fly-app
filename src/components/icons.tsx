@@ -59,6 +59,24 @@ export function HeartIcon({ filled }: { filled: boolean }) {
   )
 }
 
+export function BackArrowIcon() {
+  // Иконка "стрелка влево" — кнопка "назад" на экране переписки
+  return (
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className="w-5 h-5 stroke-current">
+      <path d="M15 5l-7 7 7 7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+export function SendIcon() {
+  // Иконка "бумажный самолётик" — кнопка отправки сообщения в переписке
+  return (
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className="w-4 h-4 stroke-white">
+      <path d="M4 12l16-8-6 16-3-6-7-2z" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 export function GridIcon() {
   // Иконка "4 квадрата" — вкладка "Лента" в нижней навигации
   return (
