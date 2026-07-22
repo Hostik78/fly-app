@@ -17,13 +17,20 @@ interface DevicePreviewProps {
   children: ReactNode // то, что показываем внутри рамки телефона (экран приложения)
 }
 
-// Рисует вырез экрана нужной формы
+// Рисует вырез экрана нужной формы.
+// Размеры и отступы — реальные величины из спеки Apple (не подобраны на глаз),
+// см. LESSONS.md "Реальные размеры выреза экрана" для источника и деталей.
 function DeviceCutout({ cutout }: { cutout: CutoutType }) {
   if (cutout === 'notch') {
-    return <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[120px] h-6 bg-black rounded-b-2xl z-10" />
+    // Классический вырез (iPhone X–13 mini/SE3 не в счёт, у них его нет):
+    // врезан вплотную в верхний край экрана, без зазора сверху.
+    return <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[160px] h-[30px] bg-black rounded-b-2xl z-10" />
   }
   if (cutout === 'dynamic-island') {
-    return <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-[90px] h-[26px] bg-black rounded-full z-10" />
+    // Dynamic Island (iPhone 14 Pro/15/16 Pro-и-не-только): 126×37pt,
+    // "плавает" с отступом 11pt от верхнего края экрана (это не пересекает статус-бар,
+    // а сидит внутри safe area) — в предыдущей версии было заметно меньше и выше положенного.
+    return <div className="absolute top-[11px] left-1/2 -translate-x-1/2 w-[126px] h-[37px] bg-black rounded-full z-10" />
   }
   if (cutout === 'punch-hole') {
     return <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-black rounded-full z-10" />
@@ -79,8 +86,10 @@ export function DevicePreview({ children }: DevicePreviewProps) {
           }}
           className="absolute top-0 left-0 bg-black rounded-[54px] p-3 shadow-[0_30px_60px_rgba(30,40,70,0.18)]"
         >
-          <DeviceCutout cutout={DEVICE.cutout} />
-          <div className="w-full h-full rounded-[42px] overflow-hidden bg-white">
+          {/* relative тут обязательно: вырез позиционируется от края ЭКРАНА (белого прямоугольника),
+              а не от края чёрной рамки — иначе отступ p-3 рамки будет каждый раз сбивать позицию выреза */}
+          <div className="relative w-full h-full rounded-[42px] overflow-hidden bg-white">
+            <DeviceCutout cutout={DEVICE.cutout} />
             {children}
           </div>
         </div>

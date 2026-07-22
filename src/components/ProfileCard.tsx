@@ -81,13 +81,15 @@ export function ProfileCard({ profile, onLike }: ProfileCardProps) {
             срабатывало бы повторно при каждом случайном клике туда-обратно. */}
         <div className="flex justify-end mt-3">
           <button
-            onClick={() =>
-              setLiked((wasLiked) => {
-                const nowLiked = !wasLiked
-                if (nowLiked) onLike?.(profile)
-                return nowLiked
-              })
-            }
+            onClick={() => {
+              // Раньше здесь был setLiked(wasLiked => ...) с вызовом onLike внутри -
+              // React ругался, что нельзя менять другой компонент (App) прямо во время
+              // обновления этого. Читаем liked напрямую - обработчик клика и так видит
+              // самое свежее значение, функция-апдейтер тут не нужна.
+              const nowLiked = !liked
+              setLiked(nowLiked)
+              if (nowLiked) onLike?.(profile)
+            }}
             className={`w-11 h-11 rounded-fly-md flex items-center justify-center transition-transform duration-200 active:scale-90 hover:scale-105 ${
               liked ? 'bg-fly-coral scale-110' : 'bg-fly-tint-coral scale-100'
             }`}
