@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { categories } from '../data/categories'
 import type { ProfileCategory } from '../data/profiles'
+import { SuggestionPanel } from './SuggestionPanel'
 
 interface CreateStatusScreenProps {
   // Вызывается при публикации: передаёт наружу текст и категорию, которые ввёл человек
@@ -40,6 +41,8 @@ export function CreateStatusScreen({ onSubmit }: CreateStatusScreenProps) {
           rows={4}
           className="mt-6 w-full bg-[#F4F5F8] rounded-fly-md px-4 py-3 text-sm text-fly-ink outline-none border border-transparent focus:border-fly-blue resize-none"
         />
+
+        <SuggestionPanel category={category} quote={quote} onSelect={setQuote} />
 
         <p className="text-xs font-medium text-fly-gray uppercase tracking-wide mt-6 mb-2">
           Категория
