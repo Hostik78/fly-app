@@ -147,3 +147,17 @@ export function SidePanelIcon() {
     </svg>
   )
 }
+
+// Иконка "искорка" — помечает варианты подсказок, по-настоящему сочинённые ИИ
+// (в отличие от заготовленных шаблонов)
+export function SparkleIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className="w-3.5 h-3.5 stroke-fly-blue-deep">
+      <path
+        d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
