@@ -1,7 +1,16 @@
 // Экран "Аккаунт" — пока черновая заглушка. Здесь позже появится редактирование
 // своей анкеты, настройки и т.д. Визуальный стиль всего приложения ещё будет меняться
 // (см. notes.md), поэтому сейчас это самый простой вариант, без лишних деталей.
+//
+// Единственный по-настоящему рабочий пункт - "Выйти": остальные (Редактировать анкету,
+// Кто меня лайкнул и т.д.) пока декоративные, ждут своих кусков бэкенда.
+import { supabase } from '../lib/supabase'
+
 export function AccountScreen() {
+  function handleSignOut() {
+    void supabase.auth.signOut()
+  }
+
   return (
     <div className="h-full w-full flex flex-col overflow-hidden">
       <div className="flex-shrink-0 px-5 pt-3 pb-1">
@@ -25,6 +34,14 @@ export function AccountScreen() {
               {item}
             </div>
           ))}
+
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="px-4 py-3 rounded-fly-md bg-[#F4F5F8] text-sm text-fly-ink text-left"
+          >
+            Выйти
+          </button>
         </div>
       </div>
     </div>
