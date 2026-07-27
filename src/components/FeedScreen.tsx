@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { profiles as defaultProfiles, type Profile, type ProfileCategory } from '../data/profiles'
 import { categories } from '../data/categories'
+import { hobbies, type HobbyId } from '../data/hobbies'
 import { ProfileCard } from './ProfileCard'
 import { MenuIcon } from './icons'
 import type { AppOutletContext } from './AppShell'
@@ -16,6 +17,10 @@ interface FilterOption {
 // Полный список фильтров-таблеток над лентой: "Все" + общий список категорий
 // (тот же самый, что используется при создании собственного статуса).
 const filters: FilterOption[] = [{ id: 'all', label: 'Все' }, ...categories]
+
+// Второй ряд фильтров - показывается только когда выбрана категория "Увлечения".
+// "Все" здесь означает "любое хобби", а не "любая категория".
+const hobbyFilters: { id: HobbyId | 'all'; label: string }[] = [{ id: 'all', label: 'Все' }, ...hobbies]
 
 interface FeedScreenProps {
   // Список анкет необязателен: если не передать - используются встроенные тестовые данные.
@@ -37,10 +42,20 @@ export function FeedScreen({ profiles = defaultProfiles }: FeedScreenProps) {
 
   // Запоминаем, какой фильтр сейчас выбран. По умолчанию — "Все".
   const [activeFilter, setActiveFilter] = useState<FilterOption['id']>('all')
+  // Хобби внутри категории "Увлечения". Отдельное состояние от activeFilter -
+  // просто не используется (и не рендерится), если верхний фильтр не "hobbies".
+  const [activeHobby, setActiveHobby] = useState<HobbyId | 'all'>('all')
 
   // Если выбрано "Все" — показываем все анкеты, иначе — только с нужной категорией.
-  const visibleProfiles =
+  const categoryFilteredProfiles =
     activeFilter === 'all' ? profiles : profiles.filter((profile) => profile.category === activeFilter)
+
+  // Дополнительно сужаем по конкретному хобби - но только внутри категории "Увлечения"
+  // и только если выбрано конкретное хобби, а не "Все".
+  const visibleProfiles =
+    activeFilter === 'hobbies' && activeHobby !== 'all'
+      ? categoryFilteredProfiles.filter((profile) => profile.hobby === activeHobby)
+      : categoryFilteredProfiles
 
   // Название выбранного фильтра — нужно для текста в пустом состоянии.
   const activeFilterLabel = filters.find((filter) => filter.id === activeFilter)?.label ?? ''
@@ -82,6 +97,28 @@ export function FeedScreen({ profiles = defaultProfiles }: FeedScreenProps) {
             )
           })}
         </div>
+
+        {/* Второй ряд - конкретные хобби, виден только внутри категории "Увлечения" */}
+        {activeFilter === 'hobbies' && (
+          <div className="flex gap-2 px-5 pt-2 overflow-x-auto no-scrollbar">
+            {hobbyFilters.map((hobby) => {
+              const isActive = hobby.id === activeHobby
+              return (
+                <button
+                  key={hobby.id}
+                  onClick={() => setActiveHobby(hobby.id)}
+                  className={
+                    isActive
+                      ? 'px-3 py-1.5 rounded-full text-[11px] font-medium bg-fly-blue-deep text-white whitespace-nowrap flex-shrink-0 transition-colors'
+                      : 'px-3 py-1.5 rounded-full text-[11px] font-medium bg-[#F4F5F8] text-fly-gray whitespace-nowrap flex-shrink-0 transition-colors hover:bg-[#E9EBF1] hover:text-fly-ink'
+                  }
+                >
+                  {hobby.label}
+                </button>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* Средняя часть — список карточек анкет. flex-1 - занимает всё оставшееся место
