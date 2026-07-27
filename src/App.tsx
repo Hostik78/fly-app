@@ -7,6 +7,7 @@ import { AppShell } from './components/AppShell'
 import { CreateStatusScreen } from './components/CreateStatusScreen'
 import { DevicePreview } from './components/DevicePreview'
 import type { Profile, ProfileCategory } from './data/profiles'
+import type { HobbyId } from './data/hobbies'
 
 // RequireStatus — "охранник" маршрутов: пока человек не опубликовал свою заметку
 // (hasPosted === false), любая попытка попасть на Ленту/Сообщения/Аккаунт
@@ -33,12 +34,13 @@ function App() {
   // Ленте, потому что его должны видеть и Лента, и Сообщения одновременно.
   const [matches, setMatches] = useState<Profile[]>([])
 
-  function handlePublish(quote: string, category: ProfileCategory) {
+  function handlePublish(quote: string, category: ProfileCategory, hobby: HobbyId | null) {
     // Пока просто отмечаем, что публикация состоялась - открываем доступ к ленте.
-    // Сам текст заметки (quote/category) в будущем можно будет показывать в
+    // Сам текст заметки (quote/category/hobby) в будущем можно будет показывать в
     // "Аккаунт" или использовать как собственную карточку в чужих лентах.
     void quote
     void category
+    void hobby
     setHasPosted(true)
   }
 

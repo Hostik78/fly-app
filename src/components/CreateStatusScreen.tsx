@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { categories } from '../data/categories'
+import { hobbies, type HobbyId } from '../data/hobbies'
 import type { ProfileCategory } from '../data/profiles'
 import { SuggestionPanel } from './SuggestionPanel'
 
 interface CreateStatusScreenProps {
-  // Вызывается при публикации: передаёт наружу текст и категорию, которые ввёл человек
-  onSubmit: (quote: string, category: ProfileCategory) => void
+  // Вызывается при публикации: передаёт наружу текст, категорию и хобби (если категория
+  // "Увлечения"; иначе null), которые ввёл человек
+  onSubmit: (quote: string, category: ProfileCategory, hobby: HobbyId | null) => void
 }
 
 // Экран "Что вы ищете сейчас?" — главная идея Pure: чтобы увидеть чужие анкеты,
@@ -18,9 +20,11 @@ interface CreateStatusScreenProps {
 export function CreateStatusScreen({ onSubmit }: CreateStatusScreenProps) {
   const [quote, setQuote] = useState('')
   const [category, setCategory] = useState<ProfileCategory>(categories[0].id)
+  const [hobby, setHobby] = useState<HobbyId | null>(null)
 
-  // Публиковать можно только если человек хоть что-то написал (без пустых заметок)
-  const canSubmit = quote.trim().length > 0
+  // Публиковать можно только если человек хоть что-то написал (без пустых заметок),
+  // а для категории "Увлечения" - ещё и выбрал конкретное хобби
+  const canSubmit = quote.trim().length > 0 && (category !== 'hobbies' || hobby !== null)
 
   return (
     <div className="h-full w-full bg-white flex flex-col overflow-hidden">
@@ -67,12 +71,37 @@ export function CreateStatusScreen({ onSubmit }: CreateStatusScreenProps) {
           })}
         </div>
 
+        {category === 'hobbies' && (
+          <>
+            <p className="text-xs font-medium text-fly-gray uppercase tracking-wide mt-6 mb-2">Хобби</p>
+            <div className="flex gap-2 flex-wrap">
+              {hobbies.map((item) => {
+                const isActive = item.id === hobby
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setHobby(item.id)}
+                    className={
+                      isActive
+                        ? 'px-4 py-2 rounded-full text-xs font-medium bg-fly-ink text-white transition-colors'
+                        : 'px-4 py-2 rounded-full text-xs font-medium bg-[#F4F5F8] text-fly-gray transition-colors hover:bg-[#E9EBF1] hover:text-fly-ink'
+                    }
+                  >
+                    {item.label}
+                  </button>
+                )
+              })}
+            </div>
+          </>
+        )}
+
         <div className="flex-1" />
 
         <button
           type="button"
           disabled={!canSubmit}
-          onClick={() => onSubmit(quote.trim(), category)}
+          onClick={() => onSubmit(quote.trim(), category, hobby)}
           className="mt-8 w-full py-3.5 rounded-fly-md bg-fly-coral text-white font-semibold text-sm transition-opacity disabled:opacity-30"
         >
           Опубликовать
