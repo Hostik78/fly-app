@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Profile } from '../data/profiles'
+import { getIcebreakers } from '../data/icebreakers'
 import { BackArrowIcon, SendIcon } from './icons'
 
 // Одно сообщение в переписке. from: 'them' - от собеседника, 'me' - от вас.
@@ -25,6 +26,12 @@ export function ChatScreen({ match, messages, onSend, onBack }: ChatScreenProps)
   const [draft, setDraft] = useState('')
   const genderLetter = match.gender === 'female' ? 'Ж' : 'М'
   const avatarColor = match.gender === 'female' ? 'bg-fly-coral' : 'bg-fly-blue-deep'
+
+  // Подсказки для начала разговора - только для категории "Увлечения" с известным
+  // хобби, и только пока человек ещё не написал в этот чат ни одного сообщения сам.
+  const hasSentMessage = messages.some((message) => message.from === 'me')
+  const icebreakers =
+    !hasSentMessage && match.category === 'hobbies' && match.hobby ? getIcebreakers(match.hobby) : []
 
   function handleSend() {
     const text = draft.trim()
@@ -66,6 +73,22 @@ export function ChatScreen({ match, messages, onSend, onBack }: ChatScreenProps)
           </div>
         ))}
       </div>
+
+      {/* Подсказки для начала разговора - показываются только пока не написали сами */}
+      {icebreakers.length > 0 && (
+        <div className="flex-shrink-0 flex gap-2 px-4 pb-2 overflow-x-auto no-scrollbar">
+          {icebreakers.map((text) => (
+            <button
+              key={text}
+              type="button"
+              onClick={() => setDraft(text)}
+              className="text-left text-xs text-fly-ink bg-[#F4F5F8] rounded-fly-md px-3 py-2 whitespace-nowrap flex-shrink-0"
+            >
+              {text}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Поле ввода нового сообщения - всегда внизу, не скроллится вместе с лентой */}
       <div className="flex-shrink-0 flex items-center gap-2 px-4 py-3 border-t border-[#F0F1F4]">
