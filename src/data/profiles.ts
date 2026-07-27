@@ -2,6 +2,8 @@
 // Позже вместо этого списка анкеты будут приходить с сервера,
 // а пока используем несколько примеров, чтобы видеть, как выглядит лента.
 
+import type { HobbyId } from './hobbies'
+
 // Категория анкеты — по ней работают фильтры-таблетки над лентой.
 // 'all' сюда не входит: "Все" — это не категория анкеты, а режим "показать всё".
 export type ProfileCategory =
@@ -16,6 +18,7 @@ export type ProfileCategory =
 export interface Profile {
   gender: 'male' | 'female' // пол анкеты — влияет на цвет карточки и букву на значке
   category: ProfileCategory // к какому фильтру относится анкета
+  hobby?: HobbyId // конкретное хобби — заполнено только когда category === 'hobbies'
   online: boolean // человек сейчас в сети (показываем зелёный значок "Онлайн")
   isNew?: boolean // анкета появилась недавно (значок "New"), поле необязательное
   quote: string // короткая фраза от человека — то, что видно в карточке
@@ -75,6 +78,7 @@ export const profiles: Profile[] = [
   {
     gender: 'female',
     category: 'hobbies',
+    hobby: 'cycling',
     online: true,
     isNew: true,
     quote: 'Везу велосипед в багаже на соревнования. Кто ещё катается — шоссе или горы?',
@@ -86,6 +90,7 @@ export const profiles: Profile[] = [
   {
     gender: 'male',
     category: 'hobbies',
+    hobby: 'movies',
     online: false,
     quote: 'Ищу компанию посмотреть новый фильм в аэропортовском кинозале, пока ждём посадку.',
     age: 33,
