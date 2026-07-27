@@ -1,16 +1,41 @@
 // Экран входа - показывается, когда человек ещё не вошёл в аккаунт.
-// Единственное действие - кнопка "Войти через Google". Дальше весь процесс
-// (переход на страницу Google, подтверждение, возврат в приложение с готовым
-// входом) делает сама библиотека supabase-js - дополнительного кода не нужно.
+// Вход по ссылке на почту (без пароля): человек вводит адрес почты, мы просим
+// Supabase прислать письмо со ссылкой. Переход по ссылке возвращает человека
+// в приложение с готовым входом - это делает сама библиотека supabase-js,
+// дополнительного кода на нашей стороне не нужно.
 
+import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 export function LoginScreen() {
-  function handleGoogleSignIn() {
-    void supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin },
+  const [email, setEmail] = useState('')
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
+
+  async function handleSendLink() {
+    const trimmedEmail = email.trim()
+    if (!trimmedEmail) return
+
+    setSending(true)
+    await supabase.auth.signInWithOtp({
+      email: trimmedEmail,
+      options: { emailRedirectTo: window.location.origin },
     })
+    setSending(false)
+    setSent(true)
+  }
+
+  if (sent) {
+    return (
+      <div className="h-full w-full bg-white flex flex-col items-center justify-center gap-4 px-8 text-center">
+        <div className="text-2xl font-semibold">
+          Fl<span className="text-fly-blue-deep">y</span>
+        </div>
+        <p className="text-sm text-fly-gray leading-relaxed">
+          Мы отправили ссылку для входа на {email}. Откройте письмо и перейдите по ссылке.
+        </p>
+      </div>
+    )
   }
 
   return (
@@ -19,14 +44,22 @@ export function LoginScreen() {
         Fl<span className="text-fly-blue-deep">y</span>
       </div>
       <p className="text-sm text-fly-gray text-center leading-relaxed">
-        Чтобы продолжить, войдите через свой Google-аккаунт
+        Чтобы продолжить, введите почту — пришлём ссылку для входа
       </p>
+      <input
+        type="email"
+        value={email}
+        onChange={(event) => setEmail(event.target.value)}
+        placeholder="you@example.com"
+        className="w-full max-w-xs bg-[#F4F5F8] rounded-fly-md px-4 py-3 text-sm text-fly-ink outline-none border border-transparent focus:border-fly-blue"
+      />
       <button
         type="button"
-        onClick={handleGoogleSignIn}
-        className="w-full max-w-xs py-3.5 rounded-fly-md bg-fly-ink text-white font-semibold text-sm"
+        disabled={!email.trim() || sending}
+        onClick={handleSendLink}
+        className="w-full max-w-xs py-3.5 rounded-fly-md bg-fly-ink text-white font-semibold text-sm transition-opacity disabled:opacity-30"
       >
-        Войти через Google
+        {sending ? 'Отправляем…' : 'Прислать ссылку для входа'}
       </button>
     </div>
   )
