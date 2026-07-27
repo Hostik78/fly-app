@@ -25,3 +25,6 @@ dist-ssr
 *.sw?
 .vercel
 .env*
+
+# Временные файлы проверки в браузере (Playwright MCP) - не часть проекта
+.playwright-mcp
