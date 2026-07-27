@@ -6,6 +6,8 @@ import { AccountScreen } from './components/AccountScreen'
 import { AppShell } from './components/AppShell'
 import { CreateStatusScreen } from './components/CreateStatusScreen'
 import { DevicePreview } from './components/DevicePreview'
+import { LoginScreen } from './components/LoginScreen'
+import { useSession } from './lib/useSession'
 import type { Profile, ProfileCategory } from './data/profiles'
 import type { HobbyId } from './data/hobbies'
 
@@ -29,6 +31,7 @@ function RequireStatus({ hasPosted }: { hasPosted: boolean }) {
 // разработки (рамка телефона). Когда дойдём до публикации для настоящих
 // пользователей, эту обёртку можно будет просто убрать.
 function App() {
+  const { session, loading } = useSession()
   const [hasPosted, setHasPosted] = useState(false)
   // Список анкет, с которыми уже "совпали" (взаимный лайк) - живёт здесь, а не в самой
   // Ленте, потому что его должны видеть и Лента, и Сообщения одновременно.
@@ -59,33 +62,40 @@ function App() {
 
   return (
     <DevicePreview>
-      {/*
-        HashRouter, а не BrowserRouter: маршруты хранятся после знака "#" в адресе
-        (например, .../#/messages), а не в самом пути страницы. Это специально нужно,
-        когда сайт может открыться по любому, заранее неизвестному адресу (например,
-        опубликованный снимок на claude.ai) - роутер тогда не зависит от того,
-        по какому именно пути его открыли.
-      */}
-      <HashRouter>
-        <Routes>
-          {/*
-            Если заметка уже опубликована, а человек всё равно зашёл на /new (например, по старой
-            ссылке) - сразу отправляем его в ленту. Это же условие само сработает и сразу после
-            публикации: hasPosted меняется -> App перерисовывается -> элемент маршрута пересчитывается.
-          */}
-          <Route
-            path="/new"
-            element={hasPosted ? <Navigate to="/" replace /> : <CreateStatusScreen onSubmit={handlePublish} />}
-          />
-          <Route element={<RequireStatus hasPosted={hasPosted} />}>
-            <Route element={<AppShell matches={matches} onLike={handleLike} />}>
-              <Route index element={<FeedScreen />} />
-              <Route path="messages" element={<MessagesScreen />} />
-              <Route path="account" element={<AccountScreen />} />
+      {loading ? (
+        // Проверка входа занимает доли секунды - полноценный экран загрузки не нужен
+        <div className="h-full w-full bg-white" />
+      ) : !session ? (
+        <LoginScreen />
+      ) : (
+        /*
+          HashRouter, а не BrowserRouter: маршруты хранятся после знака "#" в адресе
+          (например, .../#/messages), а не в самом пути страницы. Это специально нужно,
+          когда сайт может открыться по любому, заранее неизвестному адресу (например,
+          опубликованный снимок на claude.ai) - роутер тогда не зависит от того,
+          по какому именно пути его открыли.
+        */
+        <HashRouter>
+          <Routes>
+            {/*
+              Если заметка уже опубликована, а человек всё равно зашёл на /new (например, по старой
+              ссылке) - сразу отправляем его в ленту. Это же условие само сработает и сразу после
+              публикации: hasPosted меняется -> App перерисовывается -> элемент маршрута пересчитывается.
+            */}
+            <Route
+              path="/new"
+              element={hasPosted ? <Navigate to="/" replace /> : <CreateStatusScreen onSubmit={handlePublish} />}
+            />
+            <Route element={<RequireStatus hasPosted={hasPosted} />}>
+              <Route element={<AppShell matches={matches} onLike={handleLike} />}>
+                <Route index element={<FeedScreen />} />
+                <Route path="messages" element={<MessagesScreen />} />
+                <Route path="account" element={<AccountScreen />} />
+              </Route>
             </Route>
-          </Route>
-        </Routes>
-      </HashRouter>
+          </Routes>
+        </HashRouter>
+      )}
     </DevicePreview>
   )
 }
