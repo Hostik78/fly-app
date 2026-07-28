@@ -1,13 +1,18 @@
 -- supabase/sql/2026-07-28-create-profiles-table.sql
 -- Анкета о себе (пол/возраст/рост/языки), одна запись на пользователя, заполняется один раз.
 -- Применяется вручную через Supabase Dashboard -> SQL Editor (нет подключённого CLI).
+--
+-- Все поля, кроме user_id, необязательные (без "not null") - человек может нажать
+-- "Продолжить", ничего не заполнив. Проверки диапазона (check) при этом не мешают:
+-- в Postgres check-ограничение автоматически считается выполненным, если значение NULL,
+-- и срабатывает только когда значение всё-таки указано.
 
 create table public.profiles (
   user_id uuid primary key references auth.users (id) on delete cascade,
-  gender text not null check (gender in ('male', 'female')),
-  age integer not null check (age between 18 and 99),
-  height integer not null check (height between 120 and 230),
-  languages text not null check (char_length(trim(languages)) > 0),
+  gender text check (gender in ('male', 'female')),
+  age integer check (age between 18 and 99),
+  height integer check (height between 120 and 230),
+  languages text check (char_length(trim(languages)) > 0),
   created_at timestamptz not null default now()
 );
 

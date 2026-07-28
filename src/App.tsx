@@ -97,7 +97,12 @@ function App() {
   // Ленте, потому что его должны видеть и Лента, и Сообщения одновременно.
   const [matches, setMatches] = useState<Profile[]>([])
 
-  async function handleProfileSubmit(gender: 'male' | 'female', age: number, height: number, languages: string) {
+  async function handleProfileSubmit(
+    gender: 'male' | 'female' | null,
+    age: number | null,
+    height: number | null,
+    languages: string | null,
+  ) {
     if (!session) return
     const { error } = await supabase
       .from('profiles')
