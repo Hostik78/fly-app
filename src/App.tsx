@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { HashRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { FeedScreen } from './components/FeedScreen'
 import { MessagesScreen } from './components/MessagesScreen'
@@ -8,6 +8,7 @@ import { CreateStatusScreen } from './components/CreateStatusScreen'
 import { DevicePreview } from './components/DevicePreview'
 import { LoginScreen } from './components/LoginScreen'
 import { useSession } from './lib/useSession'
+import { supabase } from './lib/supabase'
 import type { Profile, ProfileCategory } from './data/profiles'
 import type { HobbyId } from './data/hobbies'
 
@@ -33,17 +34,47 @@ function RequireStatus({ hasPosted }: { hasPosted: boolean }) {
 function App() {
   const { session, loading } = useSession()
   const [hasPosted, setHasPosted] = useState(false)
+  // Пока не знаем, есть ли уже публикация у вошедшего человека - показываем общий
+  // экран загрузки (см. postLoading в overallLoading ниже), а не экран создания.
+  const [postLoading, setPostLoading] = useState(true)
+
+  useEffect(() => {
+    if (!session) {
+      setPostLoading(false)
+      return
+    }
+    let cancelled = false
+    setPostLoading(true)
+    supabase
+      .from('posts')
+      .select('id')
+      .eq('user_id', session.user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) {
+          setHasPosted(!!data)
+          setPostLoading(false)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [session?.user.id])
+
+  // Общая проверка "загрузки" перед показом приложения: либо ещё проверяем вход,
+  // либо (уже войдя) ещё проверяем, есть ли публикация.
+  const overallLoading = loading || (!!session && postLoading)
+
   // Список анкет, с которыми уже "совпали" (взаимный лайк) - живёт здесь, а не в самой
   // Ленте, потому что его должны видеть и Лента, и Сообщения одновременно.
   const [matches, setMatches] = useState<Profile[]>([])
 
-  function handlePublish(quote: string, category: ProfileCategory, hobby: HobbyId | null) {
-    // Пока просто отмечаем, что публикация состоялась - открываем доступ к ленте.
-    // Сам текст заметки (quote/category/hobby) в будущем можно будет показывать в
-    // "Аккаунт" или использовать как собственную карточку в чужих лентах.
-    void quote
-    void category
-    void hobby
+  async function handlePublish(quote: string, category: ProfileCategory, hobby: HobbyId | null) {
+    if (!session) return
+    const { error } = await supabase
+      .from('posts')
+      .insert({ user_id: session.user.id, quote, category, hobby })
+    if (error) throw error
     setHasPosted(true)
   }
 
@@ -62,7 +93,7 @@ function App() {
 
   return (
     <DevicePreview>
-      {loading ? (
+      {overallLoading ? (
         // Проверка входа занимает доли секунды - полноценный экран загрузки не нужен
         <div className="h-full w-full bg-white" />
       ) : !session ? (
