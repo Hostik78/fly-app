@@ -1,6 +1,14 @@
 -- supabase/sql/2026-07-28-create-posts-table.sql
 -- Своя публикация человека ("Что вы ищете сейчас?"), одна запись на пользователя.
--- Применяется вручную через Supabase Dashboard -> SQL Editor (нет подключённого CLI).
+-- Применена вручную через Supabase Dashboard -> SQL Editor, когда CLI ещё не был подключён -
+-- оставлено здесь как исторический документ реального состояния на момент применения.
+-- Начиная с supabase/migrations/20260728150755_..., схема меняется через CLI
+-- (`supabase migration new` + `supabase db push`), новые SQL-файлы сюда не добавляются.
+--
+-- Права ниже (grant) с тех пор были дополнительно ужесточены той же CLI-миграцией
+-- (see supabase/migrations/20260728150755_fix_profiles_nullable_and_tighten_grants.sql) -
+-- у Supabase по умолчанию anon/authenticated получают куда более широкие права на новую
+-- таблицу (включая truncate, которую не прикрывает RLS), чем указано ниже.
 
 create table public.posts (
   id uuid primary key default gen_random_uuid(),
