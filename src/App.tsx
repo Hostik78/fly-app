@@ -7,6 +7,7 @@ import { AppShell } from './components/AppShell'
 import { CreateStatusScreen } from './components/CreateStatusScreen'
 import { DevicePreview } from './components/DevicePreview'
 import { LoginScreen } from './components/LoginScreen'
+import { ProfileSetupScreen } from './components/ProfileSetupScreen'
 import { useSession } from './lib/useSession'
 import { supabase } from './lib/supabase'
 import type { Profile, ProfileCategory } from './data/profiles'
@@ -33,6 +34,10 @@ function RequireStatus({ hasPosted }: { hasPosted: boolean }) {
 // пользователей, эту обёртку можно будет просто убрать.
 function App() {
   const { session, loading } = useSession()
+  const [hasProfile, setHasProfile] = useState(false)
+  // Пока не знаем, заполнил ли вошедший человек анкету о себе - показываем общий
+  // экран загрузки (см. profileLoading в overallLoading ниже), а не следующий экран.
+  const [profileLoading, setProfileLoading] = useState(true)
   const [hasPosted, setHasPosted] = useState(false)
   // Пока не знаем, есть ли уже публикация у вошедшего человека - показываем общий
   // экран загрузки (см. postLoading в overallLoading ниже), а не экран создания.
@@ -40,9 +45,31 @@ function App() {
 
   useEffect(() => {
     if (!session) {
-      setPostLoading(false)
+      setProfileLoading(false)
       return
     }
+    let cancelled = false
+    setProfileLoading(true)
+    supabase
+      .from('profiles')
+      .select('user_id')
+      .eq('user_id', session.user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) {
+          setHasProfile(!!data)
+          setProfileLoading(false)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [session?.user.id])
+
+  useEffect(() => {
+    // Ждём, пока не станет известно, что анкета уже есть - иначе успели бы
+    // без нужды сходить в базу за публикацией раньше, чем показать анкету.
+    if (!session || !hasProfile) return
     let cancelled = false
     setPostLoading(true)
     supabase
@@ -59,15 +86,25 @@ function App() {
     return () => {
       cancelled = true
     }
-  }, [session?.user.id])
+  }, [session?.user.id, hasProfile])
 
-  // Общая проверка "загрузки" перед показом приложения: либо ещё проверяем вход,
-  // либо (уже войдя) ещё проверяем, есть ли публикация.
-  const overallLoading = loading || (!!session && postLoading)
+  // Общая проверка "загрузки" перед показом приложения: сначала проверяем вход,
+  // потом (уже войдя) анкету, потом (уже с анкетой) публикацию - по очереди,
+  // а не тремя параллельными запросами.
+  const overallLoading = loading || (!!session && (profileLoading || (hasProfile && postLoading)))
 
   // Список анкет, с которыми уже "совпали" (взаимный лайк) - живёт здесь, а не в самой
   // Ленте, потому что его должны видеть и Лента, и Сообщения одновременно.
   const [matches, setMatches] = useState<Profile[]>([])
+
+  async function handleProfileSubmit(gender: 'male' | 'female', age: number, height: number, languages: string) {
+    if (!session) return
+    const { error } = await supabase
+      .from('profiles')
+      .insert({ user_id: session.user.id, gender, age, height, languages })
+    if (error) throw error
+    setHasProfile(true)
+  }
 
   async function handlePublish(quote: string, category: ProfileCategory, hobby: HobbyId | null) {
     if (!session) return
@@ -98,6 +135,8 @@ function App() {
         <div className="h-full w-full bg-white" />
       ) : !session ? (
         <LoginScreen />
+      ) : !hasProfile ? (
+        <ProfileSetupScreen onSubmit={handleProfileSubmit} />
       ) : (
         /*
           HashRouter, а не BrowserRouter: маршруты хранятся после знака "#" в адресе
