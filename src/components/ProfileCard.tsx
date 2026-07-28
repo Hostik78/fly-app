@@ -9,16 +9,17 @@ import { DotsIcon, PersonIcon, RulerIcon, HeartIcon } from './icons'
 // а вот отметку "лайкнул/не лайкнул" карточка запоминает сама — это её личное состояние.
 interface ProfileCardProps {
   profile: Profile
-  // Вызывается только когда карточку ЛАЙКНУЛИ (не при снятии лайка) - нужно,
-  // чтобы наверху (в App.tsx) можно было проверить, не совпадение ли это.
-  // Не передан - кнопка лайка вообще не рисуется (сейчас так для всех настоящих
-  // анкет в ленте, пока не сделаны настоящие лайки - см. FeedScreen.tsx).
-  onLike?: (profile: Profile) => void
+  // Вызывается при лайке - сохраняет его в базу (см. FeedScreen.tsx). Асинхронная -
+  // если не получилось (нет сети), кнопка визуально откатывается обратно (см. ниже).
+  // Не передана - кнопки лайка вообще нет (так для карточек в "Сообщениях").
+  onLike?: (profile: Profile) => Promise<void>
 }
 
 export function ProfileCard({ profile, onLike }: ProfileCardProps) {
-  // liked - отметил ли пользователь эту анкету лайком. По умолчанию - нет.
-  const [liked, setLiked] = useState(false)
+  // liked - отметил ли пользователь эту анкету лайком. Берём из уже сохранённого
+  // состояния (profile.likedByMe), а не всегда "нет" - иначе при повторном заходе
+  // в ленту можно было бы по ошибке попробовать лайкнуть того же человека ещё раз.
+  const [liked, setLiked] = useState(profile.likedByMe)
 
   // Выбираем цвет "фото"-плашки в зависимости от пола анкеты. Пол необязательный -
   // если не указан, нейтральный серый вместо тёплого/холодного цвета.
@@ -96,10 +97,17 @@ export function ProfileCard({ profile, onLike }: ProfileCardProps) {
         {onLike && (
           <div className="flex justify-end mt-3">
             <button
-              onClick={() => {
-                const nowLiked = !liked
-                setLiked(nowLiked)
-                if (nowLiked) onLike(profile)
+              onClick={async () => {
+                // Уже лайкнули раньше - повторно ничего не отправляем.
+                if (liked) return
+                setLiked(true)
+                try {
+                  await onLike(profile)
+                } catch {
+                  // Не сохранилось (например, нет сети) - откатываем обратно, без
+                  // отдельного текста ошибки (кнопка в списке карточек - не форма).
+                  setLiked(false)
+                }
               }}
               className={`w-11 h-11 rounded-fly-md flex items-center justify-center transition-transform duration-200 active:scale-90 hover:scale-105 ${
                 liked ? 'bg-fly-coral scale-110' : 'bg-fly-tint-coral scale-100'

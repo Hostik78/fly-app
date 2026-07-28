@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import type { ProfileCategory } from '../data/profiles'
+import type { Profile, ProfileCategory } from '../data/profiles'
 import { categories } from '../data/categories'
 import { hobbies, type HobbyId } from '../data/hobbies'
 import { ProfileCard } from './ProfileCard'
 import { MenuIcon } from './icons'
 import type { AppOutletContext } from './AppShell'
 import { useFeedProfiles } from '../lib/useFeedProfiles'
+import { supabase } from '../lib/supabase'
 
 // Одна запись фильтра: id - для сравнения в коде, label - что видит пользователь.
 // 'all' не привязан ни к какой категории анкеты - это режим "показать всё".
@@ -34,6 +35,14 @@ export function FeedScreen() {
   // ленту без своей же собственной публикации.
   const { currentUserId } = useOutletContext<AppOutletContext>()
   const { profiles, loading } = useFeedProfiles(currentUserId)
+
+  // Сохраняет лайк в базу. ProfileCard сам показывает "лайкнуто" сразу (оптимистично)
+  // и откатывает обратно, если это не получилось - здесь только сам поход в базу.
+  async function handleLike(profile: Profile) {
+    if (!currentUserId) return
+    const { error } = await supabase.from('likes').insert({ liker_id: currentUserId, liked_id: profile.id })
+    if (error) throw error
+  }
 
   // Запоминаем, какой фильтр сейчас выбран. По умолчанию — "Все".
   const [activeFilter, setActiveFilter] = useState<FilterOption['id']>('all')
@@ -129,7 +138,7 @@ export function FeedScreen() {
           // просто резко "дёргались" на новый список.
           <div key={activeFilter} className="fade-in flex flex-col gap-5 pt-4 pb-4">
             {visibleProfiles.map((profile) => (
-              <ProfileCard key={profile.id} profile={profile} />
+              <ProfileCard key={profile.id} profile={profile} onLike={handleLike} />
             ))}
 
             {/* Пусто из-за фильтра, но вообще люди в ленте есть */}

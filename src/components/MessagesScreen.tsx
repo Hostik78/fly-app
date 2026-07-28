@@ -4,12 +4,14 @@ import { MessageIcon } from './icons'
 import { getAgeWord } from '../lib/pluralize'
 import type { AppOutletContext } from './AppShell'
 import type { Profile } from '../data/profiles'
+import { useMatches } from '../lib/useMatches'
 import { ChatScreen, type ChatMessage } from './ChatScreen'
 
 // Экран "Сообщения". Показывает список совпадений (взаимный лайк), а по клику
 // на любое из них - открывает переписку с этим человеком (см. ChatScreen).
 export function MessagesScreen() {
-  const { matches } = useOutletContext<AppOutletContext>()
+  const { currentUserId } = useOutletContext<AppOutletContext>()
+  const { matches, loading } = useMatches(currentUserId)
 
   // Какое совпадение сейчас открыто как переписка. null - показываем список.
   const [openMatch, setOpenMatch] = useState<Profile | null>(null)
@@ -50,7 +52,9 @@ export function MessagesScreen() {
         <h1 className="text-xl font-semibold text-fly-ink">Сообщения</h1>
       </div>
 
-      {matches.length === 0 ? (
+      {loading ? (
+        <p className="text-center text-sm text-fly-gray py-10">Загружаем совпадения…</p>
+      ) : matches.length === 0 ? (
         // Пустое состояние по центру - совпадений пока нет
         <div className="flex-1 flex flex-col items-center justify-center gap-3 px-10 text-center">
           <div className="w-14 h-14 rounded-full bg-fly-tint-blue flex items-center justify-center">

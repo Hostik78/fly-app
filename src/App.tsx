@@ -10,7 +10,7 @@ import { LoginScreen } from './components/LoginScreen'
 import { ProfileSetupScreen } from './components/ProfileSetupScreen'
 import { useSession } from './lib/useSession'
 import { supabase } from './lib/supabase'
-import type { Profile, ProfileCategory } from './data/profiles'
+import type { ProfileCategory } from './data/profiles'
 import type { HobbyId } from './data/hobbies'
 
 // RequireStatus — "охранник" маршрутов: пока человек не опубликовал свою заметку
@@ -93,10 +93,6 @@ function App() {
   // а не тремя параллельными запросами.
   const overallLoading = loading || (!!session && (profileLoading || (hasProfile && postLoading)))
 
-  // Список анкет, с которыми уже "совпали" (взаимный лайк) - живёт здесь, а не в самой
-  // Ленте, потому что его должны видеть и Лента, и Сообщения одновременно.
-  const [matches, setMatches] = useState<Profile[]>([])
-
   async function handleProfileSubmit(
     gender: 'male' | 'female' | null,
     age: number | null,
@@ -118,19 +114,6 @@ function App() {
       .insert({ user_id: session.user.id, quote, category, hobby })
     if (error) throw error
     setHasPosted(true)
-  }
-
-  // Вызывается при лайке карточки на Ленте. Совпадение случается, только если человек
-  // на тестовых данных отмечен как "заранее заинтересован в вас" (interestedInYou) -
-  // по-настоящему это будет известно лишь после реального лайка с той стороны.
-  function handleLike(profile: Profile) {
-    if (!profile.interestedInYou) return
-    setMatches((current) => {
-      // profile.quote используется как уникальный идентификатор анкеты (у тестовых
-      // данных пока нет отдельного поля id) - не добавляем одно и то же совпадение дважды.
-      if (current.some((match) => match.quote === profile.quote)) return current
-      return [...current, profile]
-    })
   }
 
   return (
@@ -162,7 +145,7 @@ function App() {
               element={hasPosted ? <Navigate to="/" replace /> : <CreateStatusScreen onSubmit={handlePublish} />}
             />
             <Route element={<RequireStatus hasPosted={hasPosted} />}>
-              <Route element={<AppShell matches={matches} onLike={handleLike} currentUserId={session.user.id} />}>
+              <Route element={<AppShell currentUserId={session.user.id} />}>
                 <Route index element={<FeedScreen />} />
                 <Route path="messages" element={<MessagesScreen />} />
                 <Route path="account" element={<AccountScreen />} />

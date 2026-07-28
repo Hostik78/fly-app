@@ -24,11 +24,15 @@ export function useFeedProfiles(currentUserId: string | undefined): { profiles: 
     setLoading(true)
 
     async function load() {
-      const { data: posts } = await supabase
-        .from('posts')
-        .select('user_id, quote, category, hobby, created_at')
-        .neq('user_id', currentUserId)
-        .order('created_at', { ascending: false })
+      const [{ data: posts }, { data: myLikes }] = await Promise.all([
+        supabase
+          .from('posts')
+          .select('user_id, quote, category, hobby, created_at')
+          .neq('user_id', currentUserId)
+          .order('created_at', { ascending: false }),
+        supabase.from('likes').select('liked_id').eq('liker_id', currentUserId),
+      ])
+      const likedIds = new Set((myLikes ?? []).map((row) => row.liked_id))
 
       const userIds = (posts ?? []).map((post) => post.user_id)
       const { data: profileRows } =
@@ -52,6 +56,7 @@ export function useFeedProfiles(currentUserId: string | undefined): { profiles: 
           age: info?.age ?? undefined,
           height: info?.height ?? undefined,
           languages: info?.languages ?? undefined,
+          likedByMe: likedIds.has(post.user_id),
         }
       })
 
