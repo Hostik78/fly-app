@@ -6,8 +6,10 @@ import { SuggestionPanel } from './SuggestionPanel'
 
 interface CreateStatusScreenProps {
   // Вызывается при публикации: передаёт наружу текст, категорию и хобби (если категория
-  // "Увлечения"; иначе null), которые ввёл человек
-  onSubmit: (quote: string, category: ProfileCategory, hobby: HobbyId | null) => void
+  // "Увлечения"; иначе null), которые ввёл человек. Асинхронная - публикация сохраняется
+  // в базу данных; если не получилось (например, нет сети), нужно выбросить ошибку -
+  // её поймает этот же экран и покажет сообщение.
+  onSubmit: (quote: string, category: ProfileCategory, hobby: HobbyId | null) => Promise<void>
 }
 
 // Экран "Что вы ищете сейчас?" — главная идея Pure: чтобы увидеть чужие анкеты,
@@ -21,6 +23,20 @@ export function CreateStatusScreen({ onSubmit }: CreateStatusScreenProps) {
   const [quote, setQuote] = useState('')
   const [category, setCategory] = useState<ProfileCategory>(categories[0].id)
   const [hobby, setHobby] = useState<HobbyId | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleSubmit() {
+    setSubmitting(true)
+    setError(null)
+    try {
+      await onSubmit(quote.trim(), category, hobby)
+    } catch {
+      setError('Не получилось опубликовать. Проверьте интернет и попробуйте ещё раз.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   // Публиковать можно только если человек хоть что-то написал (без пустых заметок),
   // а для категории "Увлечения" - ещё и выбрал конкретное хобби
@@ -98,13 +114,15 @@ export function CreateStatusScreen({ onSubmit }: CreateStatusScreenProps) {
 
         <div className="flex-1" />
 
+        {error && <p className="mt-4 text-xs text-fly-gray text-center">{error}</p>}
+
         <button
           type="button"
-          disabled={!canSubmit}
-          onClick={() => onSubmit(quote.trim(), category, hobby)}
+          disabled={!canSubmit || submitting}
+          onClick={handleSubmit}
           className="mt-8 w-full py-3.5 rounded-fly-md bg-fly-coral text-white font-semibold text-sm transition-opacity disabled:opacity-30"
         >
-          Опубликовать
+          {submitting ? 'Публикуем…' : 'Опубликовать'}
         </button>
       </div>
     </div>
