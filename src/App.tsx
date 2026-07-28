@@ -162,7 +162,7 @@ function App() {
               element={hasPosted ? <Navigate to="/" replace /> : <CreateStatusScreen onSubmit={handlePublish} />}
             />
             <Route element={<RequireStatus hasPosted={hasPosted} />}>
-              <Route element={<AppShell matches={matches} onLike={handleLike} />}>
+              <Route element={<AppShell matches={matches} onLike={handleLike} currentUserId={session.user.id} />}>
                 <Route index element={<FeedScreen />} />
                 <Route path="messages" element={<MessagesScreen />} />
                 <Route path="account" element={<AccountScreen />} />

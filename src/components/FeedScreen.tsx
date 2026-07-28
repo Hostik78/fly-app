@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { profiles as defaultProfiles, type Profile, type ProfileCategory } from '../data/profiles'
+import type { ProfileCategory } from '../data/profiles'
 import { categories } from '../data/categories'
 import { hobbies, type HobbyId } from '../data/hobbies'
 import { ProfileCard } from './ProfileCard'
 import { MenuIcon } from './icons'
 import type { AppOutletContext } from './AppShell'
+import { useFeedProfiles } from '../lib/useFeedProfiles'
 
 // Одна запись фильтра: id - для сравнения в коде, label - что видит пользователь.
 // 'all' не привязан ни к какой категории анкеты - это режим "показать всё".
@@ -22,23 +23,17 @@ const filters: FilterOption[] = [{ id: 'all', label: 'Все' }, ...categories]
 // "Все" здесь означает "любое хобби", а не "любая категория".
 const hobbyFilters: { id: HobbyId | 'all'; label: string }[] = [{ id: 'all', label: 'Все' }, ...hobbies]
 
-interface FeedScreenProps {
-  // Список анкет необязателен: если не передать - используются встроенные тестовые данные.
-  // Это позволяет DevicePreview подменять анкеты "на лету" (панель экспериментов),
-  // а при обычном использовании (<FeedScreen /> без пропсов) всё работает как раньше.
-  profiles?: Profile[]
-}
-
 // Главный экран приложения — лента анкет.
 // Собирает вместе шапку, фильтры, список карточек анкет и нижнюю навигацию.
 //
 // Важно про прокрутку: весь экран занимает ровно всю высоту телефона (h-full) и сам
 // никогда не скроллится. Скроллится только средняя часть со списком карточек —
 // шапка сверху и навигация снизу всегда остаются на месте, как в настоящих приложениях.
-export function FeedScreen({ profiles = defaultProfiles }: FeedScreenProps) {
-  // onLike пришёл из AppShell через контекст маршрута - именно он "поднимает" лайк
-  // наверх до App.tsx, где живёт список совпадений (matches).
-  const { onLike } = useOutletContext<AppOutletContext>()
+export function FeedScreen() {
+  // currentUserId пришёл из AppShell через контекст маршрута - нужен, чтобы запросить
+  // ленту без своей же собственной публикации.
+  const { currentUserId } = useOutletContext<AppOutletContext>()
+  const { profiles, loading } = useFeedProfiles(currentUserId)
 
   // Запоминаем, какой фильтр сейчас выбран. По умолчанию — "Все".
   const [activeFilter, setActiveFilter] = useState<FilterOption['id']>('all')
@@ -126,30 +121,41 @@ export function FeedScreen({ profiles = defaultProfiles }: FeedScreenProps) {
           и только тут. overscroll-contain - долистав до конца списка, страница дальше не
           "проваливается" никуда наружу. */}
       <div className="flex-1 overflow-y-auto overscroll-contain px-5">
-        {/* key={activeFilter} заставляет React пересобрать этот блок при смене фильтра,
-            а класс fade-in проигрывает плавное появление — вместо того чтобы карточки
-            просто резко "дёргались" на новый список. */}
-        <div key={activeFilter} className="fade-in flex flex-col gap-5 pt-4 pb-4">
-          {visibleProfiles.map((profile) => (
-            <ProfileCard key={profile.quote} profile={profile} onLike={onLike} />
-          ))}
+        {loading ? (
+          <p className="text-center text-sm text-fly-gray py-10">Загружаем ленту…</p>
+        ) : (
+          // key={activeFilter} заставляет React пересобрать этот блок при смене фильтра,
+          // а класс fade-in проигрывает плавное появление — вместо того чтобы карточки
+          // просто резко "дёргались" на новый список.
+          <div key={activeFilter} className="fade-in flex flex-col gap-5 pt-4 pb-4">
+            {visibleProfiles.map((profile) => (
+              <ProfileCard key={profile.id} profile={profile} />
+            ))}
 
-          {/* Если анкет в выбранной категории нет — показываем понятное сообщение вместо пустоты */}
-          {visibleProfiles.length === 0 && (
-            <p className="text-center text-sm text-fly-gray py-10">
-              Пока никого нет в категории «{activeFilterLabel}»
-            </p>
-          )}
+            {/* Пусто из-за фильтра, но вообще люди в ленте есть */}
+            {visibleProfiles.length === 0 && profiles.length > 0 && (
+              <p className="text-center text-sm text-fly-gray py-10">
+                Пока никого нет в категории «{activeFilterLabel}»
+              </p>
+            )}
 
-          {/* Карточка-превью следующей анкеты показывается только в общем списке,
-              потому что у неё нет своей категории для фильтрации */}
-          {activeFilter === 'all' && (
-            <div className="bg-white rounded-fly-lg shadow-[0_8px_30px_rgba(30,40,70,0.10)] h-14 flex items-center gap-3 px-4 text-[12.5px] font-medium text-fly-gray">
-              <div className="w-9 h-9 rounded-fly-md flex-shrink-0 bg-gradient-to-br from-[#FFEDE8] to-[#FFCFC1]" />
-              <span>29 лет · 165 см — читать дальше →</span>
-            </div>
-          )}
-        </div>
+            {/* Пусто вообще - ещё никто, кроме тебя, не публиковал заметку */}
+            {profiles.length === 0 && (
+              <p className="text-center text-sm text-fly-gray py-10">
+                Пока никто не опубликовал заметку. Как только кто-то опубликует — увидите здесь.
+              </p>
+            )}
+
+            {/* Карточка-превью следующей анкеты показывается только в общем списке,
+                потому что у неё нет своей категории для фильтрации */}
+            {activeFilter === 'all' && (
+              <div className="bg-white rounded-fly-lg shadow-[0_8px_30px_rgba(30,40,70,0.10)] h-14 flex items-center gap-3 px-4 text-[12.5px] font-medium text-fly-gray">
+                <div className="w-9 h-9 rounded-fly-md flex-shrink-0 bg-gradient-to-br from-[#FFEDE8] to-[#FFCFC1]" />
+                <span>29 лет · 165 см — читать дальше →</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

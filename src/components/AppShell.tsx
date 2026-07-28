@@ -9,18 +9,20 @@ import type { Profile } from '../data/profiles'
 export interface AppOutletContext {
   matches: Profile[] // с кем уже "совпали" (взаимный лайк)
   onLike: (profile: Profile) => void // вызывается, когда поставили лайк на Ленте
+  currentUserId: string // свой user_id - нужен ленте, чтобы не показывать свою же публикацию
 }
 
 interface AppShellProps {
   matches: Profile[]
   onLike: (profile: Profile) => void
+  currentUserId: string
 }
 
 // AppShell — общая "рамка" вокруг ЛЮБОГО экрана приложения: строка статуса телефона
 // сверху и нижняя навигация всегда на месте, а между ними — <Outlet /> (это специальное
 // место из React Router, куда подставляется нужный экран в зависимости от того,
 // какая вкладка выбрана: Лента / Сообщения / Аккаунт).
-export function AppShell({ matches, onLike }: AppShellProps) {
+export function AppShell({ matches, onLike, currentUserId }: AppShellProps) {
   return (
     <div className="h-full w-full bg-white flex flex-col overflow-hidden">
       {/* Имитация строки статуса телефона: время и код аэропорта (для атмосферы) */}
@@ -32,7 +34,7 @@ export function AppShell({ matches, onLike }: AppShellProps) {
       {/* Сюда React Router подставляет текущий экран (Лента/Сообщения/Аккаунт).
           context передаёт matches/onLike вниз, не проходя их через пропсы каждого маршрута. */}
       <div className="flex-1 overflow-hidden">
-        <Outlet context={{ matches, onLike } satisfies AppOutletContext} />
+        <Outlet context={{ matches, onLike, currentUserId } satisfies AppOutletContext} />
       </div>
 
       {/* Нижняя навигация — не скроллится и не сжимается, всегда видна.

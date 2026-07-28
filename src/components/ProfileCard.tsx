@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Profile } from '../data/profiles'
+import { getAgeWord } from '../lib/pluralize'
 import { DotsIcon, PersonIcon, RulerIcon, HeartIcon } from './icons'
 
 // Компонент — это кусочек интерфейса, который можно переиспользовать.
@@ -10,22 +11,31 @@ interface ProfileCardProps {
   profile: Profile
   // Вызывается только когда карточку ЛАЙКНУЛИ (не при снятии лайка) - нужно,
   // чтобы наверху (в App.tsx) можно было проверить, не совпадение ли это.
+  // Не передан - кнопка лайка вообще не рисуется (сейчас так для всех настоящих
+  // анкет в ленте, пока не сделаны настоящие лайки - см. FeedScreen.tsx).
   onLike?: (profile: Profile) => void
 }
 
 export function ProfileCard({ profile, onLike }: ProfileCardProps) {
   // liked - отметил ли пользователь эту анкету лайком. По умолчанию - нет.
   const [liked, setLiked] = useState(false)
-  // Выбираем цвет "фото"-плашки в зависимости от пола анкеты
-  // (пока вместо настоящих фото — просто цветной градиент-заглушка)
+
+  // Выбираем цвет "фото"-плашки в зависимости от пола анкеты. Пол необязательный -
+  // если не указан, нейтральный серый вместо тёплого/холодного цвета.
   const artBackground =
     profile.gender === 'female'
-      ? 'bg-gradient-to-br from-[#FFEDE8] to-[#FFCFC1]' // тёплый градиент для женской анкеты
-      : 'bg-gradient-to-br from-[#E4F2FD] to-[#BFE0F9]' // холодный градиент для мужской анкеты
+      ? 'bg-gradient-to-br from-[#FFEDE8] to-[#FFCFC1]'
+      : profile.gender === 'male'
+        ? 'bg-gradient-to-br from-[#E4F2FD] to-[#BFE0F9]'
+        : 'bg-gradient-to-br from-[#EEF0F4] to-[#DCE0E8]'
 
-  // Буква на цветном значке пола: Ж — женский, М — мужской
-  const genderLetter = profile.gender === 'female' ? 'Ж' : 'М'
+  // Буква на цветном значке пола - если пол не указан, значка вообще нет (не выдумываем).
+  const genderLetter = profile.gender === 'female' ? 'Ж' : profile.gender === 'male' ? 'М' : null
   const genderBadgeColor = profile.gender === 'female' ? 'bg-fly-coral' : 'bg-fly-blue-deep'
+
+  // Строка "возраст · рост · языки" рисуется целиком, только если есть хоть что-то -
+  // иначе получился бы пустой ряд с отступами и без содержимого.
+  const hasInfoLine = profile.age !== undefined || profile.height !== undefined || profile.languages !== undefined
 
   return (
     // Сама карточка: белый фон, скруглённые углы, тень вместо рамки-линии
@@ -51,52 +61,54 @@ export function ProfileCard({ profile, onLike }: ProfileCardProps) {
         </div>
       </div>
 
-      {/* Цветной блок вместо фото — заглушка с буквой пола в углу */}
+      {/* Цветной блок вместо фото — заглушка с буквой пола в углу (если пол известен) */}
       <div className={`relative mx-4 mt-4 h-[200px] rounded-fly-md overflow-hidden ${artBackground}`}>
-        <span className={`absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1.5 rounded-full text-white ${genderBadgeColor}`}>
-          {genderLetter}
-        </span>
+        {genderLetter && (
+          <span className={`absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1.5 rounded-full text-white ${genderBadgeColor}`}>
+            {genderLetter}
+          </span>
+        )}
       </div>
 
       {/* Текстовая часть карточки: фраза анкеты и короткая информация о человеке */}
       <div className="px-4 pb-4">
         <p className="text-base leading-relaxed text-fly-ink mt-4">{profile.quote}</p>
 
-        {/* Строка с возрастом, ростом и языками */}
-        <div className="flex items-center gap-4 mt-4 pt-4 text-xs font-medium text-fly-gray">
-          <span className="flex items-center gap-1">
-            <PersonIcon />
-            <b className="text-fly-ink font-semibold">{profile.age}</b> {profile.ageWord}
-          </span>
-          <span className="flex items-center gap-1">
-            <RulerIcon />
-            <b className="text-fly-ink font-semibold">{profile.height}</b> см
-          </span>
-          <span>{profile.languages}</span>
-        </div>
+        {hasInfoLine && (
+          <div className="flex items-center gap-4 mt-4 pt-4 text-xs font-medium text-fly-gray">
+            {profile.age !== undefined && (
+              <span className="flex items-center gap-1">
+                <PersonIcon />
+                <b className="text-fly-ink font-semibold">{profile.age}</b> {getAgeWord(profile.age)}
+              </span>
+            )}
+            {profile.height !== undefined && (
+              <span className="flex items-center gap-1">
+                <RulerIcon />
+                <b className="text-fly-ink font-semibold">{profile.height}</b> см
+              </span>
+            )}
+            {profile.languages !== undefined && <span>{profile.languages}</span>}
+          </div>
+        )}
 
-        {/* Кнопка "лайк" в правом нижнем углу карточки.
-            При клике переключаем liked туда-обратно и слегка увеличиваем кнопку - для приятной отдачи.
-            onLike вызываем только когда лайк ПОЯВЛЯЕТСЯ (не при снятии) - иначе "совпадение"
-            срабатывало бы повторно при каждом случайном клике туда-обратно. */}
-        <div className="flex justify-end mt-3">
-          <button
-            onClick={() => {
-              // Раньше здесь был setLiked(wasLiked => ...) с вызовом onLike внутри -
-              // React ругался, что нельзя менять другой компонент (App) прямо во время
-              // обновления этого. Читаем liked напрямую - обработчик клика и так видит
-              // самое свежее значение, функция-апдейтер тут не нужна.
-              const nowLiked = !liked
-              setLiked(nowLiked)
-              if (nowLiked) onLike?.(profile)
-            }}
-            className={`w-11 h-11 rounded-fly-md flex items-center justify-center transition-transform duration-200 active:scale-90 hover:scale-105 ${
-              liked ? 'bg-fly-coral scale-110' : 'bg-fly-tint-coral scale-100'
-            }`}
-          >
-            <HeartIcon filled={liked} />
-          </button>
-        </div>
+        {/* Кнопка "лайк" — только если onLike передан (см. комментарий у пропса выше) */}
+        {onLike && (
+          <div className="flex justify-end mt-3">
+            <button
+              onClick={() => {
+                const nowLiked = !liked
+                setLiked(nowLiked)
+                if (nowLiked) onLike(profile)
+              }}
+              className={`w-11 h-11 rounded-fly-md flex items-center justify-center transition-transform duration-200 active:scale-90 hover:scale-105 ${
+                liked ? 'bg-fly-coral scale-110' : 'bg-fly-tint-coral scale-100'
+              }`}
+            >
+              <HeartIcon filled={liked} />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

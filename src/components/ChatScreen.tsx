@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Profile } from '../data/profiles'
 import { getIcebreakers } from '../data/icebreakers'
+import { getAgeWord } from '../lib/pluralize'
 import { BackArrowIcon, SendIcon } from './icons'
 
 // Одно сообщение в переписке. from: 'them' - от собеседника, 'me' - от вас.
@@ -24,7 +25,7 @@ interface ChatScreenProps {
 // так проще, чем заводить новый URL-путь ради одного экрана.
 export function ChatScreen({ match, messages, onSend, onBack }: ChatScreenProps) {
   const [draft, setDraft] = useState('')
-  const genderLetter = match.gender === 'female' ? 'Ж' : 'М'
+  const genderLetter = match.gender === 'female' ? 'Ж' : match.gender === 'male' ? 'М' : '?'
   const avatarColor = match.gender === 'female' ? 'bg-fly-coral' : 'bg-fly-blue-deep'
 
   // Подсказки для начала разговора - только для категории "Увлечения" с известным
@@ -52,7 +53,9 @@ export function ChatScreen({ match, messages, onSend, onBack }: ChatScreenProps)
         </div>
         <div className="min-w-0">
           <div className="text-sm font-semibold text-fly-ink truncate">
-            {match.age} {match.ageWord}, {match.height} см
+            {match.age !== undefined && `${match.age} ${getAgeWord(match.age)}`}
+            {match.age !== undefined && match.height !== undefined && ', '}
+            {match.height !== undefined && `${match.height} см`}
           </div>
           <div className="text-xs text-fly-gray">{match.online ? 'В сети' : 'Не в сети'}</div>
         </div>

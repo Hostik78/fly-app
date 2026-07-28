@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { MessageIcon } from './icons'
+import { getAgeWord } from '../lib/pluralize'
 import type { AppOutletContext } from './AppShell'
 import type { Profile } from '../data/profiles'
 import { ChatScreen, type ChatMessage } from './ChatScreen'
@@ -65,7 +66,7 @@ export function MessagesScreen() {
         // Список совпадений - клик по любому открывает переписку (ChatScreen)
         <div className="flex-1 overflow-y-auto overscroll-contain">
           {matches.map((match) => {
-            const genderLetter = match.gender === 'female' ? 'Ж' : 'М'
+            const genderLetter = match.gender === 'female' ? 'Ж' : match.gender === 'male' ? 'М' : '?'
             const avatarColor = match.gender === 'female' ? 'bg-fly-coral' : 'bg-fly-blue-deep'
             const lastMessage = getMessages(match).at(-1)
             return (
@@ -81,7 +82,9 @@ export function MessagesScreen() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-semibold text-fly-ink">
-                    {match.age} {match.ageWord}, {match.height} см
+                    {match.age !== undefined && `${match.age} ${getAgeWord(match.age)}`}
+                    {match.age !== undefined && match.height !== undefined && ', '}
+                    {match.height !== undefined && `${match.height} см`}
                   </div>
                   <p className="text-xs text-fly-gray truncate">{lastMessage?.text}</p>
                 </div>
