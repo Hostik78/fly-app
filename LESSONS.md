@@ -52,3 +52,50 @@
 2. `absolute`-элемент выреза класть внутрь контейнера самого экрана (тот `div`,
    что и рисует белый прямоугольник с `overflow-hidden`), а не внутрь внешней рамки —
    так его положение не зависит от толщины бордера/паддинга рамки.
+
+## Supabase по умолчанию даёт новой таблице права шире, чем указано в grant (2026-07-28)
+
+Миграция писала `grant select, insert on public.<table> to authenticated;` и ничего
+для `anon` — но на деле у обеих первых таблиц (`posts`, `profiles`) `anon` и
+`authenticated` внезапно имели ВСЕ права: select/insert/update/delete/truncate/
+references/trigger. Причина - это платформенный дефолт Supabase на уровне проекта
+(`alter default privileges ... grant all on tables to anon, authenticated`,
+настроено автоматически при создании проекта), а не что-то, что ставит конкретная
+миграция - `grant` в миграции просто ничего не отнимал, только добавлял.
+
+Опаснее всего то, что RLS-политики закрывают select/insert/update/delete по строкам,
+но **`TRUNCATE` в Postgres вообще не подчиняется Row Level Security** - имея грант
+`truncate`, буквально любой человек с публичным `anon`-ключом (то есть кто угодно
+без входа в приложение) мог одной командой стереть таблицу целиком, несмотря на
+включённый RLS и правильные политики.
+
+**Решение**: для каждой новой таблицы, где `anon` не должен иметь вообще никакого
+доступа (как в этом проекте - все действия с базой требуют входа), явно писать
+`revoke all on public.<table> from anon, authenticated;` ПЕРЕД `grant select, insert
+... to authenticated;` - не полагаться на то, что "я просто не написал grant для
+anon, значит у него ничего нет". Проверять права после применения миграции:
+`select grantee, privilege_type from information_schema.role_table_grants where
+table_schema='public' and table_name='<table>';`.
+
+## Supabase CLI: сообщения об ошибках `db push` не показывают настоящую причину (2026-07-28)
+
+`supabase db push` при сбое SQL-выражения выводит `LegacyDbPushApplyError` с текстом
+самого выражения, но БЕЗ настоящего сообщения об ошибке от Postgres (например,
+"relation already exists" просто не показывается - видно только общее "Failed to
+execute statement"). Так и не разобрались через саму CLI, в чём дело (после серии
+`create table` под разными именами выяснилось: `public.profiles` уже существовала
+в базе, создана раньше вручную через Dashboard).
+
+**Решение**: если `db push` падает без понятной причины - подключиться к базе
+напрямую через `psql` (после `brew install libpq`, бинарник не в PATH:
+`/opt/homebrew/opt/libpq/bin/psql`) и проверить состояние своими глазами. Строка
+подключения (Session Pooler, порт 6543, часто работает надёжнее прямого
+`db.<ref>.supabase.co`, который может не резолвиться из-за IPv6-only):
+`postgresql://postgres.<project-ref>@aws-0-<region>.pooler.supabase.com:6543/postgres`
+(регион/ref - через `curl -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN"
+https://api.supabase.com/v1/projects/<ref>`), пароль - через `PGPASSWORD=...`
+переменную окружения, не в самой команде.
+
+Также: если миграция упала на каком-то выражении, CLI откатывает ВЕСЬ файл целиком
+(включая уже успешные `drop table` до места сбоя) - "успешные" по логам шаги на
+самом деле не применились, если после них что-то сломалось дальше в том же файле.
