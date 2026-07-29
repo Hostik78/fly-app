@@ -1,14 +1,17 @@
 // Экран "Аккаунт" — визуальный стиль всего приложения ещё будет меняться (см.
 // notes.md), поэтому оформление намеренно простое, без лишних деталей.
 //
-// По-настоящему рабочие пункты - "Выйти" и "Редактировать анкету". Остальные
-// (Кто меня лайкнул и т.д.) пока декоративные, ждут своих кусков бэкенда.
+// По-настоящему рабочие пункты - "Выйти", "Редактировать анкету", "Изменить заметку".
+// Остальные (Кто меня лайкнул и т.д.) пока декоративные, ждут своих кусков бэкенда.
 import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { getLanguageCodesFromNames } from '../data/languages'
 import { ProfileSetupScreen } from './ProfileSetupScreen'
+import { CreateStatusScreen } from './CreateStatusScreen'
 import type { AppOutletContext } from './AppShell'
+import type { ProfileCategory } from '../data/profiles'
+import type { HobbyId } from '../data/hobbies'
 
 interface ProfileRow {
   gender: 'male' | 'female' | null
@@ -17,16 +20,24 @@ interface ProfileRow {
   languages: string | null
 }
 
+interface PostRow {
+  quote: string
+  category: ProfileCategory
+  hobby: HobbyId | null
+}
+
 export function AccountScreen() {
   const { currentUserId } = useOutletContext<AppOutletContext>()
   const [profile, setProfile] = useState<ProfileRow | null>(null)
   const [loadingProfile, setLoadingProfile] = useState(false)
+  const [post, setPost] = useState<PostRow | null>(null)
+  const [loadingPost, setLoadingPost] = useState(false)
 
   function handleSignOut() {
     void supabase.auth.signOut()
   }
 
-  async function startEditing() {
+  async function startEditingProfile() {
     setLoadingProfile(true)
     const { data } = await supabase
       .from('profiles')
@@ -37,7 +48,7 @@ export function AccountScreen() {
     setLoadingProfile(false)
   }
 
-  async function handleUpdate(
+  async function handleUpdateProfile(
     gender: 'male' | 'female' | null,
     age: number | null,
     height: number | null,
@@ -51,6 +62,23 @@ export function AccountScreen() {
     setProfile(null)
   }
 
+  async function startEditingPost() {
+    setLoadingPost(true)
+    const { data } = await supabase
+      .from('posts')
+      .select('quote, category, hobby')
+      .eq('user_id', currentUserId)
+      .maybeSingle()
+    if (data) setPost(data)
+    setLoadingPost(false)
+  }
+
+  async function handleUpdatePost(quote: string, category: ProfileCategory, hobby: HobbyId | null) {
+    const { error } = await supabase.from('posts').update({ quote, category, hobby }).eq('user_id', currentUserId)
+    if (error) throw error
+    setPost(null)
+  }
+
   if (profile) {
     return (
       <ProfileSetupScreen
@@ -62,7 +90,18 @@ export function AccountScreen() {
         }}
         submitLabel="Сохранить"
         onCancel={() => setProfile(null)}
-        onSubmit={handleUpdate}
+        onSubmit={handleUpdateProfile}
+      />
+    )
+  }
+
+  if (post) {
+    return (
+      <CreateStatusScreen
+        initialValues={post}
+        submitLabel="Сохранить"
+        onCancel={() => setPost(null)}
+        onSubmit={handleUpdatePost}
       />
     )
   }
@@ -84,10 +123,19 @@ export function AccountScreen() {
           <button
             type="button"
             disabled={loadingProfile}
-            onClick={startEditing}
+            onClick={startEditingProfile}
             className="px-4 py-3 rounded-fly-md bg-[#F4F5F8] text-sm text-fly-ink text-left transition-opacity disabled:opacity-60"
           >
             {loadingProfile ? 'Загружаем…' : 'Редактировать анкету'}
+          </button>
+
+          <button
+            type="button"
+            disabled={loadingPost}
+            onClick={startEditingPost}
+            className="px-4 py-3 rounded-fly-md bg-[#F4F5F8] text-sm text-fly-ink text-left transition-opacity disabled:opacity-60"
+          >
+            {loadingPost ? 'Загружаем…' : 'Изменить заметку'}
           </button>
 
           {/* Остальные пункты - пока декоративные, без действия по клику */}
