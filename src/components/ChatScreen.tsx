@@ -1,32 +1,39 @@
 import { useState } from 'react'
+import { useOutletContext } from 'react-router-dom'
 import type { Profile } from '../data/profiles'
 import { getIcebreakers } from '../data/icebreakers'
 import { getAgeWord } from '../lib/pluralize'
+import { useConversation, type ChatMessage } from '../lib/useConversation'
+import type { AppOutletContext } from './AppShell'
 import { BackArrowIcon, SendIcon } from './icons'
-
-// Одно сообщение в переписке. from: 'them' - от собеседника, 'me' - от вас.
-// Настоящих ответов от собеседника пока нет (нет ни бэкенда, ни второго живого
-// человека) - "them" используется только для стартового сообщения-заглушки.
-export interface ChatMessage {
-  id: string
-  text: string
-  from: 'me' | 'them'
-}
 
 interface ChatScreenProps {
   match: Profile
-  messages: ChatMessage[]
-  onSend: (text: string) => void
   onBack: () => void
 }
 
 // Экран переписки с одним конкретным совпадением. Это не отдельный маршрут,
 // а вид, который MessagesScreen показывает вместо списка, когда выбрано совпадение -
 // так проще, чем заводить новый URL-путь ради одного экрана.
-export function ChatScreen({ match, messages, onSend, onBack }: ChatScreenProps) {
+export function ChatScreen({ match, onBack }: ChatScreenProps) {
+  const { currentUserId } = useOutletContext<AppOutletContext>()
+  const { messages: dbMessages, loading, sendMessage } = useConversation(currentUserId, match.id)
+
   const [draft, setDraft] = useState('')
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
   const genderLetter = match.gender === 'female' ? 'Ж' : match.gender === 'male' ? 'М' : '?'
   const avatarColor = match.gender === 'female' ? 'bg-fly-coral' : 'bg-fly-blue-deep'
+
+  // Пока не загрузили - список пуст (не мигаем заглушкой раньше времени). Если
+  // загрузили и настоящих сообщений нет - показываем фразу из анкеты как будто
+  // это первое сообщение (не сохраняется в базу, только для показа).
+  const messages: ChatMessage[] = loading
+    ? []
+    : dbMessages.length > 0
+      ? dbMessages
+      : [{ id: 'seed', text: match.quote, from: 'them' }]
 
   // Подсказки для начала разговора - только для категории "Увлечения" с известным
   // хобби, и только пока человек ещё не написал в этот чат ни одного сообщения сам.
@@ -34,11 +41,19 @@ export function ChatScreen({ match, messages, onSend, onBack }: ChatScreenProps)
   const icebreakers =
     !hasSentMessage && match.category === 'hobbies' && match.hobby ? getIcebreakers(match.hobby) : []
 
-  function handleSend() {
+  async function handleSend() {
     const text = draft.trim()
     if (!text) return
-    onSend(text)
-    setDraft('')
+    setSending(true)
+    setError(null)
+    try {
+      await sendMessage(text)
+      setDraft('')
+    } catch {
+      setError('Не получилось отправить. Проверьте интернет и попробуйте ещё раз.')
+    } finally {
+      setSending(false)
+    }
   }
 
   return (
@@ -93,6 +108,8 @@ export function ChatScreen({ match, messages, onSend, onBack }: ChatScreenProps)
         </div>
       )}
 
+      {error && <p className="flex-shrink-0 px-4 pb-1 text-xs text-fly-gray text-center">{error}</p>}
+
       {/* Поле ввода нового сообщения - всегда внизу, не скроллится вместе с лентой */}
       <div className="flex-shrink-0 flex items-center gap-2 px-4 py-3 border-t border-[#F0F1F4]">
         <input
@@ -106,7 +123,7 @@ export function ChatScreen({ match, messages, onSend, onBack }: ChatScreenProps)
         />
         <button
           onClick={handleSend}
-          disabled={!draft.trim()}
+          disabled={!draft.trim() || sending}
           className="w-10 h-10 rounded-fly-md bg-fly-coral flex items-center justify-center flex-shrink-0 transition-opacity disabled:opacity-30"
         >
           <SendIcon />

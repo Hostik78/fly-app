@@ -5,7 +5,7 @@ import { getAgeWord } from '../lib/pluralize'
 import type { AppOutletContext } from './AppShell'
 import type { Profile } from '../data/profiles'
 import { useMatches } from '../lib/useMatches'
-import { ChatScreen, type ChatMessage } from './ChatScreen'
+import { ChatScreen } from './ChatScreen'
 
 // Экран "Сообщения". Показывает список совпадений (взаимный лайк), а по клику
 // на любое из них - открывает переписку с этим человеком (см. ChatScreen).
@@ -16,33 +16,8 @@ export function MessagesScreen() {
   // Какое совпадение сейчас открыто как переписка. null - показываем список.
   const [openMatch, setOpenMatch] = useState<Profile | null>(null)
 
-  // Сообщения хранятся отдельно для каждого собеседника (ключ - profile.quote,
-  // используется как уникальный идентификатор анкеты), чтобы при возврате к списку
-  // и повторном открытии переписка не терялась.
-  const [messagesByMatch, setMessagesByMatch] = useState<Record<string, ChatMessage[]>>({})
-
-  function getMessages(match: Profile): ChatMessage[] {
-    // Если переписки с этим человеком ещё нет - начинаем её с его собственной фразы
-    // из анкеты, как будто это первое сообщение. Так экран не выглядит пустым.
-    return messagesByMatch[match.quote] ?? [{ id: 'seed', text: match.quote, from: 'them' }]
-  }
-
-  function handleSend(match: Profile, text: string) {
-    setMessagesByMatch((current) => ({
-      ...current,
-      [match.quote]: [...getMessages(match), { id: crypto.randomUUID(), text, from: 'me' }],
-    }))
-  }
-
   if (openMatch) {
-    return (
-      <ChatScreen
-        match={openMatch}
-        messages={getMessages(openMatch)}
-        onSend={(text) => handleSend(openMatch, text)}
-        onBack={() => setOpenMatch(null)}
-      />
-    )
+    return <ChatScreen match={openMatch} onBack={() => setOpenMatch(null)} />
   }
 
   return (
@@ -72,10 +47,9 @@ export function MessagesScreen() {
           {matches.map((match) => {
             const genderLetter = match.gender === 'female' ? 'Ж' : match.gender === 'male' ? 'М' : '?'
             const avatarColor = match.gender === 'female' ? 'bg-fly-coral' : 'bg-fly-blue-deep'
-            const lastMessage = getMessages(match).at(-1)
             return (
               <button
-                key={match.quote}
+                key={match.id}
                 onClick={() => setOpenMatch(match)}
                 className="w-full flex items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-[#F8F9FB]"
               >
@@ -90,7 +64,7 @@ export function MessagesScreen() {
                     {match.age !== undefined && match.height !== undefined && ', '}
                     {match.height !== undefined && `${match.height} см`}
                   </div>
-                  <p className="text-xs text-fly-gray truncate">{lastMessage?.text}</p>
+                  <p className="text-xs text-fly-gray truncate">{match.quote}</p>
                 </div>
               </button>
             )
