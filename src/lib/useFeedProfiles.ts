@@ -22,6 +22,9 @@ export function useFeedProfiles(
       setLoading(false)
       return
     }
+    // Копия в свою переменную - TypeScript не переносит сужение "не undefined"
+    // внутрь вложенной function load() (в отличие от обычных локальных переменных).
+    const userId = currentUserId
     let cancelled = false
     setLoading(true)
 
@@ -30,9 +33,9 @@ export function useFeedProfiles(
         supabase
           .from('posts')
           .select('user_id, quote, category, hobby, created_at')
-          .neq('user_id', currentUserId)
+          .neq('user_id', userId)
           .order('created_at', { ascending: false }),
-        supabase.from('likes').select('liked_id').eq('liker_id', currentUserId),
+        supabase.from('likes').select('liked_id').eq('liker_id', userId),
       ])
       const likedIds = new Set((myLikes ?? []).map((row) => row.liked_id))
 

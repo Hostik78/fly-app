@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import type { Database } from './database.types'
 
 // Подключение к Supabase - готовому "бэкенду в коробке" (база данных + вход/регистрация +
 // хранение файлов + переписка в реальном времени), вместо того чтобы писать всё это самим.
@@ -17,4 +18,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
   )
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// <Database> - типы колонок настоящих таблиц, сгенерированные из самой базы командой
+// `supabase gen types --linked --schema public` (файл database.types.ts, его не нужно
+// редактировать руками - перегенерировать той же командой после изменения схемы).
+// Без этого каждое поле из .select() было бы просто "any" - опечатку в названии
+// колонки или неправильный тип TypeScript не заметил бы вообще.
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)

@@ -44,7 +44,10 @@ export function AccountScreen() {
       .select('gender, age, height, languages')
       .eq('user_id', currentUserId)
       .maybeSingle()
-    setProfile(data ?? { gender: null, age: null, height: null, languages: null })
+    // gender в сгенерированных типах базы - просто "string" (Postgres не показывает
+    // TypeScript-у сами значения check-ограничения) - приводим к настоящему,
+    // более узкому типу, который база и так гарантирует.
+    setProfile((data as ProfileRow | null) ?? { gender: null, age: null, height: null, languages: null })
     setLoadingProfile(false)
   }
 
@@ -69,7 +72,9 @@ export function AccountScreen() {
       .select('quote, category, hobby')
       .eq('user_id', currentUserId)
       .maybeSingle()
-    if (data) setPost(data)
+    // category/hobby в сгенерированных типах базы - просто "string" - тот же случай,
+    // что и с gender в startEditingProfile выше.
+    if (data) setPost(data as PostRow)
     setLoadingPost(false)
   }
 

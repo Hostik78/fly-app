@@ -19,13 +19,16 @@ export function useMatches(currentUserId: string | undefined): { matches: Profil
       setLoading(false)
       return
     }
+    // Копия в свою переменную - TypeScript не переносит сужение "не undefined"
+    // внутрь вложенной function load() (в отличие от обычных локальных переменных).
+    const userId = currentUserId
     let cancelled = false
     setLoading(true)
 
     async function load() {
       const [{ data: iLiked }, { data: likedMe }] = await Promise.all([
-        supabase.from('likes').select('liked_id').eq('liker_id', currentUserId),
-        supabase.from('likes').select('liker_id').eq('liked_id', currentUserId),
+        supabase.from('likes').select('liked_id').eq('liker_id', userId),
+        supabase.from('likes').select('liker_id').eq('liked_id', userId),
       ])
       const likedMeSet = new Set((likedMe ?? []).map((row) => row.liker_id))
       const matchUserIds = (iLiked ?? []).map((row) => row.liked_id).filter((id) => likedMeSet.has(id))
