@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { HashRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { FeedScreen } from './components/FeedScreen'
 import { MessagesScreen } from './components/MessagesScreen'
@@ -8,7 +8,9 @@ import { CreateStatusScreen } from './components/CreateStatusScreen'
 import { DevicePreview } from './components/DevicePreview'
 import { LoginScreen } from './components/LoginScreen'
 import { ProfileSetupScreen } from './components/ProfileSetupScreen'
+import { NotAtAirportScreen } from './components/NotAtAirportScreen'
 import { useSession } from './lib/useSession'
+import { useAirportPresence } from './lib/useAirportPresence'
 import { supabase } from './lib/supabase'
 import type { ProfileCategory } from './data/profiles'
 import type { HobbyId } from './data/hobbies'
@@ -20,6 +22,20 @@ import type { HobbyId } from './data/hobbies'
 function RequireStatus({ hasPosted }: { hasPosted: boolean }) {
   if (!hasPosted) return <Navigate to="/new" replace />
   return <Outlet />
+}
+
+// RequireAirport — второй "охранник", но не редиректит (тут некуда - это не
+// отдельный маршрут, а состояние прямо на месте): проверяет геолокацию и либо
+// показывает то, что ему передали (children), либо NotAtAirportScreen с понятным
+// объяснением. Оборачивает только ленту и первую публикацию - см. design-спеку
+// "Что именно требует нахождения в аэропорту" (2026-07-29-airport-geofence-design.md).
+function RequireAirport({ children }: { children: ReactNode }) {
+  const { status, distanceKm, retry } = useAirportPresence()
+  if (status === 'checking') return <div className="h-full w-full bg-white" />
+  if (status !== 'at-airport') {
+    return <NotAtAirportScreen status={status} distanceKm={distanceKm} onRetry={retry} />
+  }
+  return <>{children}</>
 }
 
 // Корневой компонент приложения — то, с чего всё начинается.
@@ -142,11 +158,26 @@ function App() {
             */}
             <Route
               path="/new"
-              element={hasPosted ? <Navigate to="/" replace /> : <CreateStatusScreen onSubmit={handlePublish} />}
+              element={
+                hasPosted ? (
+                  <Navigate to="/" replace />
+                ) : (
+                  <RequireAirport>
+                    <CreateStatusScreen onSubmit={handlePublish} />
+                  </RequireAirport>
+                )
+              }
             />
             <Route element={<RequireStatus hasPosted={hasPosted} />}>
               <Route element={<AppShell currentUserId={session.user.id} />}>
-                <Route index element={<FeedScreen />} />
+                <Route
+                  index
+                  element={
+                    <RequireAirport>
+                      <FeedScreen />
+                    </RequireAirport>
+                  }
+                />
                 <Route path="messages" element={<MessagesScreen />} />
                 <Route path="account" element={<AccountScreen />} />
               </Route>
