@@ -11,7 +11,9 @@ import type { HobbyId } from '../data/hobbies'
 
 const NEW_THRESHOLD_MS = 60 * 60 * 1000 // час
 
-export function useFeedProfiles(currentUserId: string | undefined): { profiles: Profile[]; loading: boolean } {
+export function useFeedProfiles(
+  currentUserId: string | undefined,
+): { profiles: Profile[]; loading: boolean; markLiked: (userId: string) => void } {
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -72,5 +74,16 @@ export function useFeedProfiles(currentUserId: string | undefined): { profiles: 
     }
   }, [currentUserId])
 
-  return { profiles, loading }
+  // Отмечает человека лайкнутым в уже загруженном списке - вызывается снаружи
+  // (FeedScreen.tsx) сразу после того, как лайк по-настоящему сохранился в базу.
+  // Без этого profile.likedByMe оставался бы устаревшим (посчитан один раз при
+  // самой загрузке ленты), и при пересборке карточек (например, при смене
+  // фильтра - см. key={activeFilter} в FeedScreen.tsx) уже лайкнутая карточка
+  // снова показывала бы себя как нелайкнутую, а повторный лайк тихо падал бы
+  // с ошибкой (liker_id+liked_id - первичный ключ, дубликат не пройдёт).
+  function markLiked(userId: string) {
+    setProfiles((current) => current.map((profile) => (profile.id === userId ? { ...profile, likedByMe: true } : profile)))
+  }
+
+  return { profiles, loading, markLiked }
 }

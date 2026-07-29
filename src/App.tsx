@@ -66,6 +66,10 @@ function App() {
     }
     let cancelled = false
     setProfileLoading(true)
+    // Сбрасываем на "нет анкеты", пока не пришёл ответ - иначе при смене аккаунта
+    // в другой открытой вкладке (Supabase синхронизирует вход через localStorage)
+    // на долю секунды могли бы остаться данные предыдущего человека.
+    setHasProfile(false)
     supabase
       .from('profiles')
       .select('user_id')
@@ -88,6 +92,8 @@ function App() {
     if (!session || !hasProfile) return
     let cancelled = false
     setPostLoading(true)
+    // Тот же сброс, что и для hasProfile выше - на случай смены аккаунта в другой вкладке.
+    setHasPosted(false)
     supabase
       .from('posts')
       .select('id')

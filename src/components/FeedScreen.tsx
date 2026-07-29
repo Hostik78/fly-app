@@ -34,14 +34,17 @@ export function FeedScreen() {
   // currentUserId пришёл из AppShell через контекст маршрута - нужен, чтобы запросить
   // ленту без своей же собственной публикации.
   const { currentUserId } = useOutletContext<AppOutletContext>()
-  const { profiles, loading } = useFeedProfiles(currentUserId)
+  const { profiles, loading, markLiked } = useFeedProfiles(currentUserId)
 
   // Сохраняет лайк в базу. ProfileCard сам показывает "лайкнуто" сразу (оптимистично)
-  // и откатывает обратно, если это не получилось - здесь только сам поход в базу.
+  // и откатывает обратно, если это не получилось - здесь сам поход в базу и обновление
+  // уже загруженного списка (markLiked), чтобы profile.likedByMe не был устаревшим при
+  // пересборке карточек (например, при смене фильтра).
   async function handleLike(profile: Profile) {
     if (!currentUserId) return
     const { error } = await supabase.from('likes').insert({ liker_id: currentUserId, liked_id: profile.id })
     if (error) throw error
+    markLiked(profile.id)
   }
 
   // Запоминаем, какой фильтр сейчас выбран. По умолчанию — "Все".
@@ -153,15 +156,6 @@ export function FeedScreen() {
               <p className="text-center text-sm text-fly-gray py-10">
                 Пока никто не опубликовал заметку. Как только кто-то опубликует — увидите здесь.
               </p>
-            )}
-
-            {/* Карточка-превью следующей анкеты показывается только в общем списке,
-                потому что у неё нет своей категории для фильтрации */}
-            {activeFilter === 'all' && (
-              <div className="bg-white rounded-fly-lg shadow-[0_8px_30px_rgba(30,40,70,0.10)] h-14 flex items-center gap-3 px-4 text-[12.5px] font-medium text-fly-gray">
-                <div className="w-9 h-9 rounded-fly-md flex-shrink-0 bg-gradient-to-br from-[#FFEDE8] to-[#FFCFC1]" />
-                <span>29 лет · 165 см — читать дальше →</span>
-              </div>
             )}
           </div>
         )}

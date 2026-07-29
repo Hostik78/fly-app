@@ -22,25 +22,6 @@ export function DotsIcon() {
   )
 }
 
-export function PersonIcon() {
-  // Иконка "человечек" — стоит рядом с возрастом анкеты
-  return (
-    <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className="w-[13px] h-[13px] stroke-fly-gray">
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
-    </svg>
-  )
-}
-
-export function RulerIcon() {
-  // Иконка "стрелки вверх-вниз" — стоит рядом с ростом анкеты
-  return (
-    <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className="w-[13px] h-[13px] stroke-fly-gray">
-      <path d="M12 2v20M8 6l4-4 4 4M8 18l4 4 4-4" />
-    </svg>
-  )
-}
-
 // Иконка "сердце" — кнопка "лайк" на карточке анкеты.
 // filled === true (анкета отмечена лайком) — сердце залито белым, как на кнопке кораллового цвета.
 // filled === false — сердце нарисовано только контуром кораллового цвета, без заливки.
@@ -104,46 +85,6 @@ export function AccountIcon() {
     <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className="w-5 h-5 stroke-current">
       <circle cx="12" cy="8" r="4" />
       <path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
-    </svg>
-  )
-}
-
-// Иконка "телефон" — стоит рядом с выбором модели устройства в панели предпросмотра
-export function DeviceGlyphIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.6} className="w-4 h-4 stroke-fly-gray flex-shrink-0">
-      <rect x="7" y="2" width="10" height="20" rx="2.5" />
-      <path d="M10.5 18.5h3" strokeLinecap="round" />
-    </svg>
-  )
-}
-
-// Иконка "лупа с минусом" — кнопка уменьшения масштаба в панели предпросмотра
-export function ZoomOutIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className="w-4 h-4 stroke-current">
-      <circle cx="10.5" cy="10.5" r="6.5" />
-      <path d="M8 10.5h5M20.5 20.5l-4.3-4.3" strokeLinecap="round" />
-    </svg>
-  )
-}
-
-// Иконка "лупа с плюсом" — кнопка увеличения масштаба в панели предпросмотра
-export function ZoomInIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className="w-4 h-4 stroke-current">
-      <circle cx="10.5" cy="10.5" r="6.5" />
-      <path d="M10.5 8v5M8 10.5h5M20.5 20.5l-4.3-4.3" strokeLinecap="round" />
-    </svg>
-  )
-}
-
-// Иконка "боковая панель" — кнопка показать/скрыть панель экспериментов с контентом
-export function SidePanelIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className="w-4 h-4 stroke-current">
-      <rect x="3" y="4" width="18" height="16" rx="2.5" />
-      <path d="M15 4v16" />
     </svg>
   )
 }
