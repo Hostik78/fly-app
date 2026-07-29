@@ -2,6 +2,8 @@
 // Ничего не знает про интерфейс или категории — просто отдаёт наружу простой объект.
 // Погоду запрашивает у Open-Meteo (бесплатный сервис, без API-ключа и регистрации).
 
+import { AIRPORT } from '../data/airport'
+
 export type TimeOfDay = 'утро' | 'день' | 'вечер' | 'ночь'
 
 export interface LiveContext {
@@ -11,11 +13,6 @@ export interface LiveContext {
   weather: string | null
   temperature: number | null
 }
-
-// Координаты аэропорта Шереметьево (SVO) — захардкожены, так как приложение
-// пока не определяет геолокацию человека (см. design-спеку фичи)
-const SVO_LATITUDE = 55.9736
-const SVO_LONGITUDE = 37.4125
 
 // Кэш на время сессии — чтобы не запрашивать погоду заново при каждом открытии панели
 let cachedContext: LiveContext | null = null
@@ -48,8 +45,8 @@ export async function getLiveContext(): Promise<LiveContext> {
 
   try {
     const url =
-      `https://api.open-meteo.com/v1/forecast?latitude=${SVO_LATITUDE}` +
-      `&longitude=${SVO_LONGITUDE}&current=temperature_2m,weather_code`
+      `https://api.open-meteo.com/v1/forecast?latitude=${AIRPORT.latitude}` +
+      `&longitude=${AIRPORT.longitude}&current=temperature_2m,weather_code`
     const response = await fetch(url)
     if (!response.ok) throw new Error('weather request failed')
     const data = await response.json()
