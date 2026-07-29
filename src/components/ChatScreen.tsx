@@ -4,6 +4,7 @@ import type { Profile } from '../data/profiles'
 import { getIcebreakers } from '../data/icebreakers'
 import { getAgeWord } from '../lib/pluralize'
 import { useConversation, type ChatMessage } from '../lib/useConversation'
+import { getGenderColor } from '../lib/genderColor'
 import type { AppOutletContext } from './AppShell'
 import { BackArrowIcon, SendIcon } from './icons'
 
@@ -23,8 +24,7 @@ export function ChatScreen({ match, onBack }: ChatScreenProps) {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const genderLetter = match.gender === 'female' ? 'Ж' : match.gender === 'male' ? 'М' : '?'
-  const avatarColor = match.gender === 'female' ? 'bg-fly-coral' : 'bg-fly-blue-deep'
+  const avatarColor = getGenderColor(match.gender)
 
   // Пока не загрузили - список пуст (не мигаем заглушкой раньше времени). Если
   // загрузили и настоящих сообщений нет - показываем фразу из анкеты как будто
@@ -63,9 +63,7 @@ export function ChatScreen({ match, onBack }: ChatScreenProps) {
         <button onClick={onBack} className="w-8 h-8 flex items-center justify-center text-fly-ink flex-shrink-0">
           <BackArrowIcon />
         </button>
-        <div className={`w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold ${avatarColor}`}>
-          {genderLetter}
-        </div>
+        <div className="w-9 h-9 rounded-full flex-shrink-0" style={{ backgroundColor: avatarColor }} />
         <div className="min-w-0">
           <div className="text-sm font-semibold text-fly-ink truncate">
             {match.age !== undefined && `${match.age} ${getAgeWord(match.age)}`}

@@ -5,6 +5,7 @@ import { getAgeWord } from '../lib/pluralize'
 import type { AppOutletContext } from './AppShell'
 import type { Profile } from '../data/profiles'
 import { useMatches } from '../lib/useMatches'
+import { getGenderColor } from '../lib/genderColor'
 import { ChatScreen } from './ChatScreen'
 
 // Экран "Сообщения". Показывает список совпадений (взаимный лайк), а по клику
@@ -45,19 +46,14 @@ export function MessagesScreen() {
         // Список совпадений - клик по любому открывает переписку (ChatScreen)
         <div className="flex-1 overflow-y-auto overscroll-contain">
           {matches.map((match) => {
-            const genderLetter = match.gender === 'female' ? 'Ж' : match.gender === 'male' ? 'М' : '?'
-            const avatarColor = match.gender === 'female' ? 'bg-fly-coral' : 'bg-fly-blue-deep'
+            const avatarColor = getGenderColor(match.gender)
             return (
               <button
                 key={match.id}
                 onClick={() => setOpenMatch(match)}
                 className="w-full flex items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-[#F8F9FB]"
               >
-                <div
-                  className={`w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center text-white text-sm font-bold ${avatarColor}`}
-                >
-                  {genderLetter}
-                </div>
+                <div className="w-12 h-12 rounded-full flex-shrink-0" style={{ backgroundColor: avatarColor }} />
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-semibold text-fly-ink">
                     {match.age !== undefined && `${match.age} ${getAgeWord(match.age)}`}

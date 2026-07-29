@@ -3,6 +3,7 @@ import type { Profile } from '../data/profiles'
 import { getAgeWord } from '../lib/pluralize'
 import { categories } from '../data/categories'
 import { hobbies } from '../data/hobbies'
+import { getGenderColor } from '../lib/genderColor'
 import { DotsIcon, HeartIcon } from './icons'
 
 // Компонент — это кусочек интерфейса, который можно переиспользовать.
@@ -29,7 +30,7 @@ export function ProfileCard({ profile, onLike }: ProfileCardProps) {
 
   // Цвет полоски слева зависит от пола. Пол необязательный - если не указан,
   // нейтральный серый вместо тёплого/холодного цвета (не выдумываем).
-  const stripeColor = profile.gender === 'female' ? '#FF6B57' : profile.gender === 'male' ? '#2E7BC4' : '#A3ACBA'
+  const stripeColor = getGenderColor(profile.gender)
 
   const categoryLabel = categories.find((item) => item.id === profile.category)?.label ?? ''
   const hobbyLabel = profile.hobby ? hobbies.find((item) => item.id === profile.hobby)?.label : undefined
