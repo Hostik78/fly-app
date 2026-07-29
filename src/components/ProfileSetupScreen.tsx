@@ -18,7 +18,24 @@ const MAX_HEIGHT = 230
 const ageOptions = Array.from({ length: MAX_AGE - MIN_AGE + 1 }, (_, index) => MIN_AGE + index)
 const heightOptions = Array.from({ length: MAX_HEIGHT - MIN_HEIGHT + 1 }, (_, index) => MIN_HEIGHT + index)
 
+// Для повторного использования этого же экрана в режиме редактирования (см.
+// AccountScreen.tsx) - если передано, поля заполняются текущими значениями вместо
+// пустых, а не только для первого разового заполнения после входа.
+interface ProfileInitialValues {
+  gender: 'male' | 'female' | null
+  age: number | null
+  height: number | null
+  languageCodes: string[]
+}
+
 interface ProfileSetupScreenProps {
+  initialValues?: ProfileInitialValues
+  // Текст на кнопке отправки, пока не идёт сохранение - по умолчанию "Продолжить"
+  // (для первого разового заполнения). При редактировании передаётся "Сохранить".
+  submitLabel?: string
+  // Кнопка "Отмена" - только при редактировании, где есть куда вернуться, ничего
+  // не сохранив. При первом разовом заполнении анкета обязательна, отменить нельзя.
+  onCancel?: () => void
   // Вызывается при отправке анкеты. Все поля необязательные - человек может нажать
   // "Продолжить", ничего не заполнив, поэтому null - такое же нормальное значение,
   // как и заполненное. Асинхронная - сохраняется в базу данных; если не получилось
@@ -32,11 +49,11 @@ interface ProfileSetupScreenProps {
   ) => Promise<void>
 }
 
-export function ProfileSetupScreen({ onSubmit }: ProfileSetupScreenProps) {
-  const [gender, setGender] = useState<'male' | 'female' | null>(null)
-  const [ageInput, setAgeInput] = useState('')
-  const [heightInput, setHeightInput] = useState('')
-  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([])
+export function ProfileSetupScreen({ initialValues, submitLabel, onCancel, onSubmit }: ProfileSetupScreenProps) {
+  const [gender, setGender] = useState<'male' | 'female' | null>(initialValues?.gender ?? null)
+  const [ageInput, setAgeInput] = useState(initialValues?.age != null ? String(initialValues.age) : '')
+  const [heightInput, setHeightInput] = useState(initialValues?.height != null ? String(initialValues.height) : '')
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>(initialValues?.languageCodes ?? [])
   const [languagePickerOpen, setLanguagePickerOpen] = useState(false)
   const [languageSearch, setLanguageSearch] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -75,10 +92,13 @@ export function ProfileSetupScreen({ onSubmit }: ProfileSetupScreenProps) {
         <div className="text-xl font-semibold mb-1">
           Fl<span className="text-fly-blue-deep">y</span>
         </div>
-        <h1 className="text-2xl font-semibold text-fly-ink mt-6">Расскажите о себе</h1>
+        <h1 className="text-2xl font-semibold text-fly-ink mt-6">
+          {initialValues ? 'Редактировать анкету' : 'Расскажите о себе'}
+        </h1>
         <p className="text-sm text-fly-gray mt-2 leading-relaxed">
-          Коротко — эти данные будет видно в вашей карточке в ленте. Всё необязательно,
-          можно пропустить и заполнить позже.
+          {initialValues
+            ? 'Измените, что нужно, и сохраните.'
+            : 'Коротко — эти данные будет видно в вашей карточке в ленте. Всё необязательно, можно пропустить и заполнить позже.'}
         </p>
 
         <p className="text-xs font-medium text-fly-gray uppercase tracking-wide mt-6 mb-2">Пол</p>
@@ -185,8 +205,19 @@ export function ProfileSetupScreen({ onSubmit }: ProfileSetupScreenProps) {
           onClick={handleSubmit}
           className="mt-8 w-full py-3.5 rounded-fly-md bg-fly-coral text-white font-semibold text-sm transition-opacity disabled:opacity-30"
         >
-          {submitting ? 'Сохраняем…' : 'Продолжить'}
+          {submitting ? 'Сохраняем…' : (submitLabel ?? 'Продолжить')}
         </button>
+
+        {onCancel && (
+          <button
+            type="button"
+            disabled={submitting}
+            onClick={onCancel}
+            className="mt-3 w-full py-3 rounded-fly-md bg-[#F4F5F8] text-fly-ink font-semibold text-sm transition-opacity disabled:opacity-30"
+          >
+            Отмена
+          </button>
+        )}
       </div>
     </div>
   )

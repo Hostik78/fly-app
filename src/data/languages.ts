@@ -53,3 +53,13 @@ export const languageOptions: LanguageOption[] = languageCodes
     seenNames.add(option.name)
     return true
   })
+
+// Обратное преобразование - из строки, сохранённой в базе ("русский, английский"),
+// обратно в коды языков, чтобы можно было заново открыть галочки при редактировании
+// анкеты. Работает, потому что строка в базе - это как раз join(', ') от таких же
+// названий (см. ProfileSetupScreen.tsx) - разбираем её назад по тому же разделителю.
+export function getLanguageCodesFromNames(text: string | null): string[] {
+  if (!text) return []
+  const names = new Set(text.split(', '))
+  return languageOptions.filter((option) => names.has(option.name)).map((option) => option.code)
+}
