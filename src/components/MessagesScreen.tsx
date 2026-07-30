@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { MessageIcon } from './icons'
 import { getAgeWord } from '../lib/pluralize'
@@ -6,7 +6,10 @@ import type { AppOutletContext } from './AppShell'
 import type { Profile } from '../data/profiles'
 import { useMatches } from '../lib/useMatches'
 import { getGenderColor } from '../lib/genderColor'
-import { ChatScreen } from './ChatScreen'
+
+// ChatScreen открывается не сразу, а только по клику на конкретное совпадение -
+// поэтому его код тоже грузим отдельным кусочком (см. подробное объяснение lazy(...) в App.tsx).
+const ChatScreen = lazy(() => import('./ChatScreen').then((m) => ({ default: m.ChatScreen })))
 
 // Экран "Сообщения". Показывает список совпадений (взаимный лайк), а по клику
 // на любое из них - открывает переписку с этим человеком (см. ChatScreen).
@@ -18,7 +21,11 @@ export function MessagesScreen() {
   const [openMatch, setOpenMatch] = useState<Profile | null>(null)
 
   if (openMatch) {
-    return <ChatScreen match={openMatch} onBack={() => setOpenMatch(null)} />
+    return (
+      <Suspense fallback={<div className="h-full w-full bg-white" />}>
+        <ChatScreen match={openMatch} onBack={() => setOpenMatch(null)} />
+      </Suspense>
+    )
   }
 
   return (

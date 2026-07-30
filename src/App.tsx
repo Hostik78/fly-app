@@ -1,19 +1,31 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState, lazy, Suspense, type ReactNode } from 'react'
 import { HashRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { FeedScreen } from './components/FeedScreen'
 import { MessagesScreen } from './components/MessagesScreen'
-import { AccountScreen } from './components/AccountScreen'
 import { AppShell } from './components/AppShell'
-import { CreateStatusScreen } from './components/CreateStatusScreen'
 import { DevicePreview } from './components/DevicePreview'
 import { LoginScreen } from './components/LoginScreen'
-import { ProfileSetupScreen } from './components/ProfileSetupScreen'
 import { NotAtAirportScreen } from './components/NotAtAirportScreen'
 import { useSession } from './lib/useSession'
 import { useAirportPresence } from './lib/useAirportPresence'
 import { supabase } from './lib/supabase'
 import type { ProfileCategory } from './data/profiles'
 import type { HobbyId } from './data/hobbies'
+
+// lazy(...) - эти три экрана нужны не сразу при открытии приложения (анкета
+// заполняется один раз, заметка редактируется редко, экран аккаунта - только
+// по клику на вкладку). Раньше их код входил в тот же файл, что скачивается
+// в самом начале для абсолютно всех - теперь браузер скачает их отдельным
+// кусочком, только когда они реально понадобятся. Именованный экспорт
+// (export function X) оборачиваем в .then(...), потому что lazy() ожидает
+// export default - у наших компонентов его нет.
+const AccountScreen = lazy(() => import('./components/AccountScreen').then((m) => ({ default: m.AccountScreen })))
+const ProfileSetupScreen = lazy(() =>
+  import('./components/ProfileSetupScreen').then((m) => ({ default: m.ProfileSetupScreen })),
+)
+const CreateStatusScreen = lazy(() =>
+  import('./components/CreateStatusScreen').then((m) => ({ default: m.CreateStatusScreen })),
+)
 
 // RequireStatus — "охранник" маршрутов: пока человек не опубликовал свою заметку
 // (hasPosted === false), любая попытка попасть на Ленту/Сообщения/Аккаунт
@@ -118,57 +130,66 @@ function App() {
 
   return (
     <DevicePreview>
-      {overallLoading ? (
-        // Проверка входа занимает доли секунды - полноценный экран загрузки не нужен
-        <div className="h-full w-full bg-white" />
-      ) : !session ? (
-        <LoginScreen />
-      ) : !hasProfile ? (
-        <ProfileSetupScreen onSubmit={handleProfileSubmit} />
-      ) : (
-        /*
-          HashRouter, а не BrowserRouter: маршруты хранятся после знака "#" в адресе
-          (например, .../#/messages), а не в самом пути страницы. Это специально нужно,
-          когда сайт может открыться по любому, заранее неизвестному адресу (например,
-          опубликованный снимок на claude.ai) - роутер тогда не зависит от того,
-          по какому именно пути его открыли.
-        */
-        <HashRouter>
-          <Routes>
-            {/*
-              Если заметка уже опубликована, а человек всё равно зашёл на /new (например, по старой
-              ссылке) - сразу отправляем его в ленту. Это же условие само сработает и сразу после
-              публикации: hasPosted меняется -> App перерисовывается -> элемент маршрута пересчитывается.
-            */}
-            <Route
-              path="/new"
-              element={
-                hasPosted ? (
-                  <Navigate to="/" replace />
-                ) : (
-                  <RequireAirport>
-                    <CreateStatusScreen onSubmit={handlePublish} />
-                  </RequireAirport>
-                )
-              }
-            />
-            <Route element={<RequireStatus hasPosted={hasPosted} />}>
-              <Route element={<AppShell currentUserId={session.user.id} />}>
-                <Route
-                  index
-                  element={
+      {/*
+        Suspense - "подожди, пока довскроется код" для трёх экранов, обёрнутых
+        в lazy(...) выше (AccountScreen, ProfileSetupScreen, CreateStatusScreen).
+        fallback показывается только на те доли секунды, пока грузится их файл -
+        берём тот же пустой белый экран, что и для overallLoading, чтобы не было
+        заметно разницы между "проверяем вход" и "довскрываем экран".
+      */}
+      <Suspense fallback={<div className="h-full w-full bg-white" />}>
+        {overallLoading ? (
+          // Проверка входа занимает доли секунды - полноценный экран загрузки не нужен
+          <div className="h-full w-full bg-white" />
+        ) : !session ? (
+          <LoginScreen />
+        ) : !hasProfile ? (
+          <ProfileSetupScreen onSubmit={handleProfileSubmit} />
+        ) : (
+          /*
+            HashRouter, а не BrowserRouter: маршруты хранятся после знака "#" в адресе
+            (например, .../#/messages), а не в самом пути страницы. Это специально нужно,
+            когда сайт может открыться по любому, заранее неизвестному адресу (например,
+            опубликованный снимок на claude.ai) - роутер тогда не зависит от того,
+            по какому именно пути его открыли.
+          */
+          <HashRouter>
+            <Routes>
+              {/*
+                Если заметка уже опубликована, а человек всё равно зашёл на /new (например, по старой
+                ссылке) - сразу отправляем его в ленту. Это же условие само сработает и сразу после
+                публикации: hasPosted меняется -> App перерисовывается -> элемент маршрута пересчитывается.
+              */}
+              <Route
+                path="/new"
+                element={
+                  hasPosted ? (
+                    <Navigate to="/" replace />
+                  ) : (
                     <RequireAirport>
-                      <FeedScreen />
+                      <CreateStatusScreen onSubmit={handlePublish} />
                     </RequireAirport>
-                  }
-                />
-                <Route path="messages" element={<MessagesScreen />} />
-                <Route path="account" element={<AccountScreen />} />
+                  )
+                }
+              />
+              <Route element={<RequireStatus hasPosted={hasPosted} />}>
+                <Route element={<AppShell currentUserId={session.user.id} />}>
+                  <Route
+                    index
+                    element={
+                      <RequireAirport>
+                        <FeedScreen />
+                      </RequireAirport>
+                    }
+                  />
+                  <Route path="messages" element={<MessagesScreen />} />
+                  <Route path="account" element={<AccountScreen />} />
+                </Route>
               </Route>
-            </Route>
-          </Routes>
-        </HashRouter>
-      )}
+            </Routes>
+          </HashRouter>
+        )}
+      </Suspense>
     </DevicePreview>
   )
 }
