@@ -10,6 +10,12 @@ import type { Profile, ProfileCategory } from '../data/profiles'
 import type { HobbyId } from '../data/hobbies'
 
 const NEW_THRESHOLD_MS = 60 * 60 * 1000 // час
+// Сколько последних заметок грузим за раз - без ограничения лента однажды скачивала
+// бы вообще все публикации всех пользователей сразу, и чем больше людей в приложении,
+// тем медленнее она открывалась бы у каждого. 50 самых свежих (публикации и так
+// отсортированы по дате) - разумный запас с большим отступом от того, что реально
+// поместится на экране за один раз.
+const FEED_LIMIT = 50
 
 export function useFeedProfiles(
   currentUserId: string | undefined,
@@ -34,7 +40,8 @@ export function useFeedProfiles(
           .from('posts')
           .select('user_id, quote, category, hobby, created_at')
           .neq('user_id', userId)
-          .order('created_at', { ascending: false }),
+          .order('created_at', { ascending: false })
+          .limit(FEED_LIMIT),
         supabase.from('likes').select('liked_id').eq('liker_id', userId),
       ])
       const likedIds = new Set((myLikes ?? []).map((row) => row.liked_id))

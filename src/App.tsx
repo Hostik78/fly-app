@@ -51,69 +51,47 @@ function RequireAirport({ children }: { children: ReactNode }) {
 function App() {
   const { session, loading } = useSession()
   const [hasProfile, setHasProfile] = useState(false)
-  // Пока не знаем, заполнил ли вошедший человек анкету о себе - показываем общий
-  // экран загрузки (см. profileLoading в overallLoading ниже), а не следующий экран.
-  const [profileLoading, setProfileLoading] = useState(true)
   const [hasPosted, setHasPosted] = useState(false)
-  // Пока не знаем, есть ли уже публикация у вошедшего человека - показываем общий
-  // экран загрузки (см. postLoading в overallLoading ниже), а не экран создания.
-  const [postLoading, setPostLoading] = useState(true)
+  // Пока не знаем ни то, ни другое - показываем общий экран загрузки (см.
+  // accountLoading в overallLoading ниже), а не следующий экран. Оба запроса
+  // идут одновременно (Promise.all) - анкета и публикация не зависят друг от
+  // друга, обеим нужен только session.user.id, поэтому нет смысла ждать одну
+  // по очереди с другой.
+  const [accountLoading, setAccountLoading] = useState(true)
 
   useEffect(() => {
     if (!session) {
-      setProfileLoading(false)
+      setAccountLoading(false)
       return
     }
     let cancelled = false
-    setProfileLoading(true)
-    // Сбрасываем на "нет анкеты", пока не пришёл ответ - иначе при смене аккаунта
-    // в другой открытой вкладке (Supabase синхронизирует вход через localStorage)
-    // на долю секунды могли бы остаться данные предыдущего человека.
+    setAccountLoading(true)
+    // Сбрасываем на "нет анкеты/публикации", пока не пришёл ответ - иначе при
+    // смене аккаунта в другой открытой вкладке (Supabase синхронизирует вход
+    // через localStorage) на долю секунды могли бы остаться данные предыдущего
+    // человека.
     setHasProfile(false)
-    supabase
-      .from('profiles')
-      .select('user_id')
-      .eq('user_id', session.user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (!cancelled) {
-          setHasProfile(!!data)
-          setProfileLoading(false)
-        }
-      })
+    setHasPosted(false)
+
+    Promise.all([
+      supabase.from('profiles').select('user_id').eq('user_id', session.user.id).maybeSingle(),
+      supabase.from('posts').select('id').eq('user_id', session.user.id).maybeSingle(),
+    ]).then(([profileResult, postResult]) => {
+      if (!cancelled) {
+        setHasProfile(!!profileResult.data)
+        setHasPosted(!!postResult.data)
+        setAccountLoading(false)
+      }
+    })
+
     return () => {
       cancelled = true
     }
   }, [session?.user.id])
 
-  useEffect(() => {
-    // Ждём, пока не станет известно, что анкета уже есть - иначе успели бы
-    // без нужды сходить в базу за публикацией раньше, чем показать анкету.
-    if (!session || !hasProfile) return
-    let cancelled = false
-    setPostLoading(true)
-    // Тот же сброс, что и для hasProfile выше - на случай смены аккаунта в другой вкладке.
-    setHasPosted(false)
-    supabase
-      .from('posts')
-      .select('id')
-      .eq('user_id', session.user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (!cancelled) {
-          setHasPosted(!!data)
-          setPostLoading(false)
-        }
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [session?.user.id, hasProfile])
-
   // Общая проверка "загрузки" перед показом приложения: сначала проверяем вход,
-  // потом (уже войдя) анкету, потом (уже с анкетой) публикацию - по очереди,
-  // а не тремя параллельными запросами.
-  const overallLoading = loading || (!!session && (profileLoading || (hasProfile && postLoading)))
+  // потом (уже войдя) анкету и публикацию разом.
+  const overallLoading = loading || (!!session && accountLoading)
 
   async function handleProfileSubmit(
     gender: 'male' | 'female' | null,

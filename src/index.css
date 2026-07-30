@@ -33,7 +33,11 @@
    себе вес потолще через свои классы (font-medium/font-semibold). */
 body {
   margin: 0;
-  font-family: 'Helvetica Neue', Arial, sans-serif;
+  /* Geist Variable - подключён строкой @import выше (@fontsource-variable/geist) и
+     специально выбран для этого проекта (см. --font-sans в @theme inline ниже) - раньше
+     здесь по ошибке остался Helvetica Neue от самого первого макета, и настоящий
+     подключённый шрифт никогда не показывался. */
+  font-family: 'Geist Variable', sans-serif;
   font-weight: 400;
   background: #e9edf3;
   color: var(--color-fly-ink);
