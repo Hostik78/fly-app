@@ -115,7 +115,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      count_pending_likes: { Args: never; Returns: number }
     }
     Enums: {
       [_ in never]: never

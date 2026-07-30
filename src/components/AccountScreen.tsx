@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { getLanguageCodesFromNames } from '../data/languages'
+import { useLikedByCount } from '../lib/useLikedByCount'
 import { ProfileSetupScreen } from './ProfileSetupScreen'
 import { CreateStatusScreen } from './CreateStatusScreen'
 import type { AppOutletContext } from './AppShell'
@@ -28,6 +29,7 @@ interface PostRow {
 
 export function AccountScreen() {
   const { currentUserId } = useOutletContext<AppOutletContext>()
+  const { count: likedByCount } = useLikedByCount(currentUserId)
   const [profile, setProfile] = useState<ProfileRow | null>(null)
   const [loadingProfile, setLoadingProfile] = useState(false)
   const [post, setPost] = useState<PostRow | null>(null)
@@ -143,8 +145,24 @@ export function AccountScreen() {
             {loadingPost ? 'Загружаем…' : 'Изменить заметку'}
           </button>
 
+          {/*
+            "Кто меня лайкнул" - показываем только ЧИСЛО, без имён (см. useLikedByCount) -
+            специально так, чтобы не сломать механику "совпадение видно только когда оно
+            уже взаимное" (см. миграцию tighten_likes_select_to_hide_one_sided.sql).
+            Число не показываем вовсе, если оно 0 - пустой значок "0" выглядел бы как
+            декоративный мусор, а не как настоящая информация.
+          */}
+          <div className="px-4 py-3 rounded-fly-md bg-[#F4F5F8] text-sm text-fly-ink flex items-center justify-between">
+            <span>Кто меня лайкнул</span>
+            {likedByCount > 0 && (
+              <span className="text-xs font-bold text-white bg-fly-coral min-w-[20px] px-2 py-0.5 rounded-full text-center">
+                {likedByCount}
+              </span>
+            )}
+          </div>
+
           {/* Остальные пункты - пока декоративные, без действия по клику */}
-          {['Кто меня лайкнул', 'Настройки уведомлений', 'Помощь'].map((item) => (
+          {['Настройки уведомлений', 'Помощь'].map((item) => (
             <div key={item} className="px-4 py-3 rounded-fly-md bg-[#F4F5F8] text-sm text-fly-ink">
               {item}
             </div>
