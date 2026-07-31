@@ -29,7 +29,7 @@ export function LoginScreen() {
     return (
       <div className="h-full w-full bg-white flex flex-col items-center justify-center gap-4 px-8 text-center">
         <div className="text-2xl font-semibold">
-          Fl<span className="text-fly-blue-deep">y</span>
+          Fl<span className="text-fly-coral">y</span>
         </div>
         <p className="text-sm text-fly-gray leading-relaxed">
           Мы отправили ссылку для входа на {email}. Откройте письмо и перейдите по ссылке.
@@ -41,7 +41,7 @@ export function LoginScreen() {
   return (
     <div className="h-full w-full bg-white flex flex-col items-center justify-center gap-6 px-8">
       <div className="text-2xl font-semibold">
-        Fl<span className="text-fly-blue-deep">y</span>
+        Fl<span className="text-fly-coral">y</span>
       </div>
       <p className="text-sm text-fly-gray text-center leading-relaxed">
         Чтобы продолжить, введите почту — пришлём ссылку для входа
@@ -51,7 +51,7 @@ export function LoginScreen() {
         value={email}
         onChange={(event) => setEmail(event.target.value)}
         placeholder="you@example.com"
-        className="w-full max-w-xs bg-[#F4F5F8] rounded-fly-md px-4 py-3 text-sm text-fly-ink outline-none border border-transparent focus:border-fly-blue"
+        className="w-full max-w-xs bg-fly-fog rounded-fly-md px-4 py-3 text-sm text-fly-ink outline-none border border-transparent focus:border-fly-coral"
       />
       <button
         type="button"

@@ -77,14 +77,14 @@ export function SuggestionPanel({ category, quote, onSelect }: SuggestionPanelPr
       <button
         type="button"
         onClick={handleToggle}
-        className="flex items-center gap-1.5 text-xs font-medium text-fly-blue-deep"
+        className="flex items-center gap-1.5 text-xs font-medium text-fly-violet"
       >
         <SparkleIcon />
         Нужна идея?
       </button>
 
       {isOpen && (
-        <div className="mt-2 flex flex-col gap-2 bg-[#F4F5F8] rounded-fly-md p-3">
+        <div className="mt-2 flex flex-col gap-2 bg-fly-fog rounded-fly-md p-3">
           {instant.map((text) => (
             <button
               key={text}

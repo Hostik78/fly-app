@@ -122,7 +122,7 @@ export function AccountScreen() {
       <div className="flex-1 overflow-y-auto overscroll-contain px-5 pt-4 pb-4">
         {/* Заглушка вместо фото профиля */}
         <div className="flex flex-col items-center gap-3 pb-6">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#E4F2FD] to-[#BFE0F9]" />
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-fly-tint-coral to-[#FFB49E]" />
           <p className="text-sm text-fly-gray">Здесь будет ваша анкета</p>
         </div>
 
@@ -131,7 +131,7 @@ export function AccountScreen() {
             type="button"
             disabled={loadingProfile}
             onClick={startEditingProfile}
-            className="px-4 py-3 rounded-fly-md bg-[#F4F5F8] text-sm text-fly-ink text-left transition-opacity disabled:opacity-60"
+            className="px-4 py-3 rounded-fly-md bg-fly-fog text-sm text-fly-ink text-left transition-opacity disabled:opacity-60"
           >
             {loadingProfile ? 'Загружаем…' : 'Редактировать анкету'}
           </button>
@@ -140,7 +140,7 @@ export function AccountScreen() {
             type="button"
             disabled={loadingPost}
             onClick={startEditingPost}
-            className="px-4 py-3 rounded-fly-md bg-[#F4F5F8] text-sm text-fly-ink text-left transition-opacity disabled:opacity-60"
+            className="px-4 py-3 rounded-fly-md bg-fly-fog text-sm text-fly-ink text-left transition-opacity disabled:opacity-60"
           >
             {loadingPost ? 'Загружаем…' : 'Изменить заметку'}
           </button>
@@ -152,7 +152,7 @@ export function AccountScreen() {
             Число не показываем вовсе, если оно 0 - пустой значок "0" выглядел бы как
             декоративный мусор, а не как настоящая информация.
           */}
-          <div className="px-4 py-3 rounded-fly-md bg-[#F4F5F8] text-sm text-fly-ink flex items-center justify-between">
+          <div className="px-4 py-3 rounded-fly-md bg-fly-fog text-sm text-fly-ink flex items-center justify-between">
             <span>Кто меня лайкнул</span>
             {likedByCount > 0 && (
               <span className="text-xs font-bold text-white bg-fly-coral min-w-[20px] px-2 py-0.5 rounded-full text-center">
@@ -163,7 +163,7 @@ export function AccountScreen() {
 
           {/* Остальные пункты - пока декоративные, без действия по клику */}
           {['Настройки уведомлений', 'Помощь'].map((item) => (
-            <div key={item} className="px-4 py-3 rounded-fly-md bg-[#F4F5F8] text-sm text-fly-ink">
+            <div key={item} className="px-4 py-3 rounded-fly-md bg-fly-fog text-sm text-fly-ink">
               {item}
             </div>
           ))}
@@ -171,7 +171,7 @@ export function AccountScreen() {
           <button
             type="button"
             onClick={handleSignOut}
-            className="px-4 py-3 rounded-fly-md bg-[#F4F5F8] text-sm text-fly-ink text-left"
+            className="px-4 py-3 rounded-fly-md bg-fly-fog text-sm text-fly-ink text-left"
           >
             Выйти
           </button>

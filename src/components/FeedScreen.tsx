@@ -77,9 +77,9 @@ export function FeedScreen() {
         {/* Шапка: название приложения слева, кнопка меню справа */}
         <div className="flex items-center justify-between px-5 pt-3">
           <div className="text-xl font-semibold">
-            Fl<span className="text-fly-blue-deep">y</span>
+            Fl<span className="text-fly-coral">y</span>
           </div>
-          <button className="w-[38px] h-[38px] rounded-fly-md bg-fly-tint-blue flex items-center justify-center transition-colors hover:bg-[#DEEEFB]">
+          <button className="w-[38px] h-[38px] rounded-fly-md bg-fly-fog flex items-center justify-center transition-colors hover:bg-fly-fog-strong">
             <MenuIcon />
           </button>
         </div>
@@ -96,7 +96,7 @@ export function FeedScreen() {
                 className={
                   isActive
                     ? 'px-4 py-2 rounded-full text-xs font-medium bg-fly-ink text-white whitespace-nowrap flex-shrink-0 transition-colors'
-                    : 'px-4 py-2 rounded-full text-xs font-medium bg-[#F4F5F8] text-fly-gray whitespace-nowrap flex-shrink-0 transition-colors hover:bg-[#E9EBF1] hover:text-fly-ink'
+                    : 'px-4 py-2 rounded-full text-xs font-medium bg-fly-fog text-fly-gray whitespace-nowrap flex-shrink-0 transition-colors hover:bg-fly-fog-strong hover:text-fly-ink'
                 }
               >
                 {filter.label}
@@ -116,8 +116,8 @@ export function FeedScreen() {
                   onClick={() => setActiveHobby(hobby.id)}
                   className={
                     isActive
-                      ? 'px-3 py-1.5 rounded-full text-[11px] font-medium bg-fly-blue-deep text-white whitespace-nowrap flex-shrink-0 transition-colors'
-                      : 'px-3 py-1.5 rounded-full text-[11px] font-medium bg-[#F4F5F8] text-fly-gray whitespace-nowrap flex-shrink-0 transition-colors hover:bg-[#E9EBF1] hover:text-fly-ink'
+                      ? 'px-3 py-1.5 rounded-full text-[11px] font-medium bg-fly-ink text-white whitespace-nowrap flex-shrink-0 transition-colors'
+                      : 'px-3 py-1.5 rounded-full text-[11px] font-medium bg-fly-fog text-fly-gray whitespace-nowrap flex-shrink-0 transition-colors hover:bg-fly-fog-strong hover:text-fly-ink'
                   }
                 >
                   {hobby.label}

@@ -16,7 +16,7 @@ export function NotAtAirportScreen({ status, distanceKm, onRetry }: NotAtAirport
   return (
     <div className="h-full w-full bg-white flex flex-col items-center justify-center gap-4 px-8 text-center">
       <div className="text-2xl font-semibold">
-        Fl<span className="text-fly-blue-deep">y</span>
+        Fl<span className="text-fly-coral">y</span>
       </div>
       <p className="text-sm text-fly-gray leading-relaxed">{getText(status, distanceKm)}</p>
       <button

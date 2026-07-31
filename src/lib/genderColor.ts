@@ -3,7 +3,7 @@
 // шапке переписки (ChatScreen). Пол не указан - нейтральный серый, а не
 // выдуманный цвет.
 export function getGenderColor(gender: 'male' | 'female' | undefined): string {
-  if (gender === 'female') return '#FF6B57'
+  if (gender === 'female') return '#FF4B39'
   if (gender === 'male') return '#2E7BC4'
   return '#A3ACBA'
 }

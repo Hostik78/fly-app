@@ -8,23 +8,39 @@
 
 /*
   Блок @theme — это способ Tailwind 4 добавить СВОИ цвета, радиусы и т.д.
-  Мы взяли значения из макета (fly-feed-v5-clean.html), чтобы получить тот же вид,
-  но использовать их через классы Tailwind, а не через обычный CSS.
+  --color-fly-xxx превращается в классы bg-fly-xxx, text-fly-xxx и т.п.
+
+  Единая дизайн-система "Живой" (выбрана из трёх показанных вариантов, вдохновлена
+  редизайном приложения Pure — смелее, теплее, крупнее). Все цвета и скругления
+  для ВСЕГО приложения собраны здесь, в одном месте — поменять оттенок или радиус
+  теперь можно одной строкой тут, а не правкой в десятке файлов.
 */
 @theme {
-  /* Цвета из макета: --color-fly-xxx превращается в классы bg-fly-xxx, text-fly-xxx и т.п. */
-  --color-fly-blue: #4FA6E8;
+  /* --- Смысловые цвета: НЕ часть акцентной палитры, значение важнее моды --- */
+  --color-fly-blue: #4FA6E8;        /* обозначение пола "мужской" (см. genderColor.ts) */
   --color-fly-blue-deep: #2E7BC4;
-  --color-fly-coral: #FF6B57;
-  --color-fly-ink: #1C2233;
-  --color-fly-gray: #A3ACBA;
   --color-fly-tint-blue: #EEF6FD;
-  --color-fly-tint-coral: #FFF1EE;
+  --color-fly-online: #3CCB7F;      /* "в сети" - один и тот же зелёный везде в приложении */
+  --color-fly-gray: #A3ACBA;        /* второстепенный, приглушённый текст */
+  --color-fly-ink: #241726;         /* основной текст - тёплый тёмный, а не холодно-синий */
 
-  /* Радиусы скругления углов из макета: rounded-fly-sm / rounded-fly-md / rounded-fly-lg */
-  --radius-fly-sm: 10px;
-  --radius-fly-md: 14px;
-  --radius-fly-lg: 22px;
+  /* --- Акценты "Живого": коралл - главное действие, фиолетовый - только ИИ-подсказки --- */
+  --color-fly-coral: #FF4B39;
+  --color-fly-violet: #7C5CFF;
+  --color-fly-tint-coral: #FFE4DA;
+  --color-fly-tint-violet: #F1EDFF;
+
+  /* --- Нейтральные поверхности: тёплые, а не холодно-серые (было #F4F5F8 и ещё
+     3-4 похожих оттенка, вписанных вручную в разных местах без всякой системы) --- */
+  --color-fly-fog: #F7F1EC;         /* поля ввода, неактивные таблетки, входящие сообщения */
+  --color-fly-fog-strong: #EFE6DE;  /* hover/pressed поверх fog */
+  --color-fly-hairline: #F1E7DF;    /* тонкие разделители */
+  --color-fly-bg: #FFF6F1;          /* фон экрана целиком */
+
+  /* Радиусы скругления углов — крупнее и мягче, чем раньше */
+  --radius-fly-sm: 14px;
+  --radius-fly-md: 20px;
+  --radius-fly-lg: 34px;
 }
 
 /* Базовый шрифт и фон страницы.
@@ -39,7 +55,7 @@ body {
      подключённый шрифт никогда не показывался. */
   font-family: 'Geist Variable', sans-serif;
   font-weight: 400;
-  background: #e9edf3;
+  background: var(--color-fly-bg);
   color: var(--color-fly-ink);
 }
 

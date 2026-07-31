@@ -59,7 +59,7 @@ export function ChatScreen({ match, onBack }: ChatScreenProps) {
   return (
     <div className="h-full w-full flex flex-col overflow-hidden">
       {/* Шапка переписки: кнопка назад к списку + кто это */}
-      <div className="flex-shrink-0 flex items-center gap-3 px-4 pt-3 pb-3 border-b border-[#F0F1F4]">
+      <div className="flex-shrink-0 flex items-center gap-3 px-4 pt-3 pb-3 border-b border-fly-hairline">
         <button onClick={onBack} className="w-8 h-8 flex items-center justify-center text-fly-ink flex-shrink-0">
           <BackArrowIcon />
         </button>
@@ -82,7 +82,7 @@ export function ChatScreen({ match, onBack }: ChatScreenProps) {
             className={`max-w-[75%] px-3.5 py-2.5 rounded-fly-md text-sm leading-relaxed ${
               message.from === 'me'
                 ? 'self-end bg-fly-ink text-white'
-                : 'self-start bg-[#F4F5F8] text-fly-ink'
+                : 'self-start bg-fly-fog text-fly-ink'
             }`}
           >
             {message.text}
@@ -98,7 +98,7 @@ export function ChatScreen({ match, onBack }: ChatScreenProps) {
               key={text}
               type="button"
               onClick={() => setDraft(text)}
-              className="text-left text-xs text-fly-ink bg-[#F4F5F8] rounded-fly-md px-3 py-2 whitespace-nowrap flex-shrink-0"
+              className="text-left text-xs text-fly-ink bg-fly-fog rounded-fly-md px-3 py-2 whitespace-nowrap flex-shrink-0"
             >
               {text}
             </button>
@@ -109,7 +109,7 @@ export function ChatScreen({ match, onBack }: ChatScreenProps) {
       {error && <p className="flex-shrink-0 px-4 pb-1 text-xs text-fly-gray text-center">{error}</p>}
 
       {/* Поле ввода нового сообщения - всегда внизу, не скроллится вместе с лентой */}
-      <div className="flex-shrink-0 flex items-center gap-2 px-4 py-3 border-t border-[#F0F1F4]">
+      <div className="flex-shrink-0 flex items-center gap-2 px-4 py-3 border-t border-fly-hairline">
         <input
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
@@ -117,7 +117,7 @@ export function ChatScreen({ match, onBack }: ChatScreenProps) {
             if (event.key === 'Enter') handleSend()
           }}
           placeholder="Написать сообщение..."
-          className="flex-1 bg-[#F4F5F8] rounded-fly-md px-4 py-2.5 text-sm text-fly-ink outline-none border border-transparent focus:border-fly-blue"
+          className="flex-1 bg-fly-fog rounded-fly-md px-4 py-2.5 text-sm text-fly-ink outline-none border border-transparent focus:border-fly-coral"
         />
         <button
           onClick={handleSend}

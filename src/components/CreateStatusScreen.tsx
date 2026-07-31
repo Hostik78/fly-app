@@ -63,7 +63,7 @@ export function CreateStatusScreen({ initialValues, submitLabel, onCancel, onSub
     <div className="h-full w-full bg-white flex flex-col overflow-hidden">
       <div className="flex-1 overflow-y-auto overscroll-contain px-6 pt-12 pb-6 flex flex-col">
         <div className="text-xl font-semibold mb-1">
-          Fl<span className="text-fly-blue-deep">y</span>
+          Fl<span className="text-fly-coral">y</span>
         </div>
         <h1 className="text-2xl font-semibold text-fly-ink mt-6">
           {initialValues ? 'Изменить заметку' : 'Что вы ищете сейчас?'}
@@ -78,7 +78,7 @@ export function CreateStatusScreen({ initialValues, submitLabel, onCancel, onSub
           onChange={(event) => setQuote(event.target.value)}
           placeholder="Например: жду посадку у 14 гейта, есть час свободного времени..."
           rows={4}
-          className="mt-6 w-full bg-[#F4F5F8] rounded-fly-md px-4 py-3 text-sm text-fly-ink outline-none border border-transparent focus:border-fly-blue resize-none"
+          className="mt-6 w-full bg-fly-fog rounded-fly-md px-4 py-3 text-sm text-fly-ink outline-none border border-transparent focus:border-fly-coral resize-none"
         />
 
         <SuggestionPanel category={category} quote={quote} onSelect={setQuote} />
@@ -97,7 +97,7 @@ export function CreateStatusScreen({ initialValues, submitLabel, onCancel, onSub
                 className={
                   isActive
                     ? 'px-4 py-2 rounded-full text-xs font-medium bg-fly-ink text-white transition-colors'
-                    : 'px-4 py-2 rounded-full text-xs font-medium bg-[#F4F5F8] text-fly-gray transition-colors hover:bg-[#E9EBF1] hover:text-fly-ink'
+                    : 'px-4 py-2 rounded-full text-xs font-medium bg-fly-fog text-fly-gray transition-colors hover:bg-fly-fog-strong hover:text-fly-ink'
                 }
               >
                 {item.label}
@@ -120,7 +120,7 @@ export function CreateStatusScreen({ initialValues, submitLabel, onCancel, onSub
                     className={
                       isActive
                         ? 'px-4 py-2 rounded-full text-xs font-medium bg-fly-ink text-white transition-colors'
-                        : 'px-4 py-2 rounded-full text-xs font-medium bg-[#F4F5F8] text-fly-gray transition-colors hover:bg-[#E9EBF1] hover:text-fly-ink'
+                        : 'px-4 py-2 rounded-full text-xs font-medium bg-fly-fog text-fly-gray transition-colors hover:bg-fly-fog-strong hover:text-fly-ink'
                     }
                   >
                     {item.label}
@@ -149,7 +149,7 @@ export function CreateStatusScreen({ initialValues, submitLabel, onCancel, onSub
             type="button"
             disabled={submitting}
             onClick={onCancel}
-            className="mt-3 w-full py-3 rounded-fly-md bg-[#F4F5F8] text-fly-ink font-semibold text-sm transition-opacity disabled:opacity-30"
+            className="mt-3 w-full py-3 rounded-fly-md bg-fly-fog text-fly-ink font-semibold text-sm transition-opacity disabled:opacity-30"
           >
             Отмена
           </button>

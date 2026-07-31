@@ -40,8 +40,8 @@ export function MessagesScreen() {
       ) : matches.length === 0 ? (
         // Пустое состояние по центру - совпадений пока нет
         <div className="flex-1 flex flex-col items-center justify-center gap-3 px-10 text-center">
-          <div className="w-14 h-14 rounded-full bg-fly-tint-blue flex items-center justify-center">
-            <div className="w-6 h-6 text-fly-blue-deep">
+          <div className="w-14 h-14 rounded-full bg-fly-tint-coral flex items-center justify-center">
+            <div className="w-6 h-6 text-fly-coral">
               <MessageIcon />
             </div>
           </div>
@@ -58,7 +58,7 @@ export function MessagesScreen() {
               <button
                 key={match.id}
                 onClick={() => setOpenMatch(match)}
-                className="w-full flex items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-[#F8F9FB]"
+                className="w-full flex items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-fly-fog"
               >
                 <div className="w-12 h-12 rounded-full flex-shrink-0" style={{ backgroundColor: avatarColor }} />
                 <div className="min-w-0 flex-1">

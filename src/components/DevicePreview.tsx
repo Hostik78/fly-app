@@ -68,7 +68,7 @@ export function DevicePreview({ children }: DevicePreviewProps) {
   }, [])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#e9edf3]">
+    <div className="min-h-screen flex items-center justify-center bg-fly-bg">
       {/* Внешняя обёртка размером точно под текущий масштаб — нужна, чтобы после
           трансформации рамка занимала на странице ровно столько места, сколько видно глазами */}
       <div

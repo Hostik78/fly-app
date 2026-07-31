@@ -5,7 +5,7 @@
 export function MenuIcon() {
   // Иконка "три горизонтальные линии" — кнопка меню в шапке
   return (
-    <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className="w-4 h-4 stroke-fly-blue-deep">
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className="w-4 h-4 stroke-fly-ink">
       <path d="M4 6h16M8 12h12M12 18h8" strokeLinecap="round" />
     </svg>
   )
@@ -90,10 +90,12 @@ export function AccountIcon() {
 }
 
 // Иконка "искорка" — помечает варианты подсказок, по-настоящему сочинённые ИИ
-// (в отличие от заготовленных шаблонов)
+// (в отличие от заготовленных шаблонов). Фиолетовый - отдельный, второй акцент
+// приложения, зарезервированный именно за ИИ-функциями (см. index.css), чтобы
+// такие места были узнаваемы с первого взгляда и не путались с обычными кнопками.
 export function SparkleIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className="w-3.5 h-3.5 stroke-fly-blue-deep">
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className="w-3.5 h-3.5 stroke-fly-violet">
       <path
         d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z"
         strokeLinejoin="round"

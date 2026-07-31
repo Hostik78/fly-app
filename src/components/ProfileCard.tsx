@@ -9,11 +9,11 @@ import { DotsIcon, HeartIcon } from './icons'
 // Компонент — это кусочек интерфейса, который можно переиспользовать.
 // Этот компонент рисует одну карточку анкеты в ленте.
 //
-// Дизайн - "бирка на чемодан": цветная полоска слева (вместо фото-плашки с
-// буквой пола), крупная жирная фраза как заголовок, данные - отдельными
-// "таблетками". Выбран из трёх макетов-вариантов (см. docs/superpowers) как
-// самый близкий к тому, что этот проект - "среднее между сайтом знакомств
-// и социальной сетью", а не типичный дейтинг-сайт.
+// Дизайн "Живой" (выбран из трёх показанных вариантов, вдохновлён редизайном
+// приложения Pure): один угол карточки заметно круглее остальных - эффект
+// стикера, а не строгой геометрической фигуры. Цвет по полу (см. getGenderColor)
+// сохранён с прошлой версии дизайна ("бирка на чемодан") - только раньше он был
+// тонкой полоской слева, теперь это заливка целого "ярлычка" сверху карточки.
 interface ProfileCardProps {
   profile: Profile
   // Вызывается при лайке - сохраняет его в базу (см. FeedScreen.tsx). Асинхронная -
@@ -53,21 +53,14 @@ export function ProfileCard({ profile, onLike }: ProfileCardProps) {
   }
 
   return (
-    <div
-      className="relative bg-white rounded-fly-lg shadow-[0_8px_30px_rgba(30,40,70,0.10)] pl-5 pr-4 py-4"
-      style={{ borderLeft: `6px solid ${stripeColor}` }}
-    >
-      {/* "Дырка" от бирки - декоративный кружок на полоске, как на настоящей бирке чемодана */}
-      <span
-        className="absolute top-4 -left-[9px] w-4 h-4 rounded-full bg-white"
-        style={{ border: `2px solid ${stripeColor}` }}
-      />
-
-      {/* Верхняя строка: категория (+хобби, если есть) слева, кнопка-меню справа */}
+    <div className="relative bg-white rounded-tl-[34px] rounded-tr-[34px] rounded-br-[34px] rounded-bl-[14px] shadow-[0_8px_30px_rgba(30,40,70,0.10)] pl-5 pr-4 py-4">
+      {/* Верхняя строка: категория (+хобби, если есть) слева, кнопка-меню справа.
+          Заливка ярлычка - сплошной цвет по полу (не светлый оттенок с цветным текстом,
+          как было раньше) - это и есть "живой", более смелый язык этого направления. */}
       <div className="flex items-center justify-between gap-2 mb-2.5">
         <span
-          className="text-[10.5px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap"
-          style={{ backgroundColor: `${stripeColor}1A`, color: stripeColor }}
+          className="text-[10.5px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap text-white"
+          style={{ backgroundColor: stripeColor }}
         >
           {profile.isNew && 'New · '}
           {categoryLabel}
@@ -84,17 +77,17 @@ export function ProfileCard({ profile, onLike }: ProfileCardProps) {
       {hasInfoLine && (
         <div className="flex flex-wrap gap-1.5 mt-3">
           {profile.age !== undefined && (
-            <span className="text-xs font-semibold text-fly-ink bg-[#F4F5F8] px-2.5 py-1 rounded-full">
+            <span className="text-xs font-semibold text-fly-ink bg-fly-fog px-2.5 py-1 rounded-full">
               {profile.age} {getAgeWord(profile.age)}
             </span>
           )}
           {profile.height !== undefined && (
-            <span className="text-xs font-semibold text-fly-ink bg-[#F4F5F8] px-2.5 py-1 rounded-full">
+            <span className="text-xs font-semibold text-fly-ink bg-fly-fog px-2.5 py-1 rounded-full">
               {profile.height} см
             </span>
           )}
           {profile.languages !== undefined && (
-            <span className="text-xs font-semibold text-fly-ink bg-[#F4F5F8] px-2.5 py-1 rounded-full">
+            <span className="text-xs font-semibold text-fly-ink bg-fly-fog px-2.5 py-1 rounded-full">
               {profile.languages}
             </span>
           )}
@@ -104,17 +97,20 @@ export function ProfileCard({ profile, onLike }: ProfileCardProps) {
       <div className="flex items-center mt-3.5">
         {profile.online && (
           <span className="flex items-center gap-1.5 text-[11px] font-semibold text-fly-gray">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#3CCB7F]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-fly-online" />
             Онлайн
           </span>
         )}
 
         {/* Кнопка "лайк" — только если onLike передан (см. комментарий у пропса выше).
-            ml-auto прижимает её вправо независимо от того, есть ли значок "Онлайн" слева. */}
+            ml-auto прижимает её вправо независимо от того, есть ли значок "Онлайн" слева.
+            Пружинящий отклик (cubic-bezier с "перелётом") - фирменное движение "Живого" -
+            вместо обычного плавного scale, кнопка чуть проскакивает нужный размер и
+            возвращается, как на макете. */}
         {onLike && (
           <button
             onClick={handleLikeClick}
-            className={`ml-auto w-10 h-10 rounded-fly-md flex items-center justify-center transition-transform duration-200 active:scale-90 hover:scale-105 ${
+            className={`ml-auto w-10 h-10 rounded-fly-md flex items-center justify-center transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] active:scale-75 hover:scale-105 ${
               liked ? 'bg-fly-coral scale-110' : 'bg-fly-tint-coral scale-100'
             }`}
           >

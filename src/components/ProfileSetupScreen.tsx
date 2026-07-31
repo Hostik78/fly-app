@@ -90,7 +90,7 @@ export function ProfileSetupScreen({ initialValues, submitLabel, onCancel, onSub
     <div className="h-full w-full bg-white flex flex-col overflow-hidden">
       <div className="flex-1 overflow-y-auto overscroll-contain px-6 pt-12 pb-6 flex flex-col">
         <div className="text-xl font-semibold mb-1">
-          Fl<span className="text-fly-blue-deep">y</span>
+          Fl<span className="text-fly-coral">y</span>
         </div>
         <h1 className="text-2xl font-semibold text-fly-ink mt-6">
           {initialValues ? 'Редактировать анкету' : 'Расскажите о себе'}
@@ -109,7 +109,7 @@ export function ProfileSetupScreen({ initialValues, submitLabel, onCancel, onSub
             className={
               gender === 'male'
                 ? 'px-4 py-2 rounded-full text-xs font-medium bg-fly-ink text-white transition-colors'
-                : 'px-4 py-2 rounded-full text-xs font-medium bg-[#F4F5F8] text-fly-gray transition-colors hover:bg-[#E9EBF1] hover:text-fly-ink'
+                : 'px-4 py-2 rounded-full text-xs font-medium bg-fly-fog text-fly-gray transition-colors hover:bg-fly-fog-strong hover:text-fly-ink'
             }
           >
             Мужской
@@ -120,7 +120,7 @@ export function ProfileSetupScreen({ initialValues, submitLabel, onCancel, onSub
             className={
               gender === 'female'
                 ? 'px-4 py-2 rounded-full text-xs font-medium bg-fly-ink text-white transition-colors'
-                : 'px-4 py-2 rounded-full text-xs font-medium bg-[#F4F5F8] text-fly-gray transition-colors hover:bg-[#E9EBF1] hover:text-fly-ink'
+                : 'px-4 py-2 rounded-full text-xs font-medium bg-fly-fog text-fly-gray transition-colors hover:bg-fly-fog-strong hover:text-fly-ink'
             }
           >
             Женский
@@ -131,7 +131,7 @@ export function ProfileSetupScreen({ initialValues, submitLabel, onCancel, onSub
         <select
           value={ageInput}
           onChange={(event) => setAgeInput(event.target.value)}
-          className="w-full bg-[#F4F5F8] rounded-fly-md px-4 py-3 text-sm text-fly-ink outline-none border border-transparent focus:border-fly-blue"
+          className="w-full bg-fly-fog rounded-fly-md px-4 py-3 text-sm text-fly-ink outline-none border border-transparent focus:border-fly-coral"
         >
           <option value="" disabled>
             Выберите возраст
@@ -147,7 +147,7 @@ export function ProfileSetupScreen({ initialValues, submitLabel, onCancel, onSub
         <select
           value={heightInput}
           onChange={(event) => setHeightInput(event.target.value)}
-          className="w-full bg-[#F4F5F8] rounded-fly-md px-4 py-3 text-sm text-fly-ink outline-none border border-transparent focus:border-fly-blue"
+          className="w-full bg-fly-fog rounded-fly-md px-4 py-3 text-sm text-fly-ink outline-none border border-transparent focus:border-fly-coral"
         >
           <option value="" disabled>
             Выберите рост
@@ -163,7 +163,7 @@ export function ProfileSetupScreen({ initialValues, submitLabel, onCancel, onSub
         <button
           type="button"
           onClick={() => setLanguagePickerOpen((open) => !open)}
-          className="w-full bg-[#F4F5F8] rounded-fly-md px-4 py-3 text-sm text-left outline-none border border-transparent focus:border-fly-blue"
+          className="w-full bg-fly-fog rounded-fly-md px-4 py-3 text-sm text-left outline-none border border-transparent focus:border-fly-coral"
         >
           {selectedLanguages.length > 0 ? (
             <span className="text-fly-ink">{selectedLanguages.map(getLanguageName).join(', ')}</span>
@@ -173,19 +173,19 @@ export function ProfileSetupScreen({ initialValues, submitLabel, onCancel, onSub
         </button>
 
         {languagePickerOpen && (
-          <div className="mt-2 rounded-fly-md border border-[#E9EBF1] overflow-hidden">
+          <div className="mt-2 rounded-fly-md border border-fly-hairline overflow-hidden">
             <input
               type="text"
               value={languageSearch}
               onChange={(event) => setLanguageSearch(event.target.value)}
               placeholder="Поиск..."
-              className="w-full px-4 py-2.5 text-sm text-fly-ink outline-none border-b border-[#E9EBF1]"
+              className="w-full px-4 py-2.5 text-sm text-fly-ink outline-none border-b border-fly-hairline"
             />
             <div className="max-h-48 overflow-y-auto overscroll-contain">
               {filteredLanguages.map(({ code, name }) => (
                 <label
                   key={code}
-                  className="flex items-center gap-2.5 px-4 py-2 text-sm text-fly-ink hover:bg-[#F4F5F8] cursor-pointer"
+                  className="flex items-center gap-2.5 px-4 py-2 text-sm text-fly-ink hover:bg-fly-fog cursor-pointer"
                 >
                   <input type="checkbox" checked={selectedLanguages.includes(code)} onChange={() => toggleLanguage(code)} />
                   {name}
@@ -213,7 +213,7 @@ export function ProfileSetupScreen({ initialValues, submitLabel, onCancel, onSub
             type="button"
             disabled={submitting}
             onClick={onCancel}
-            className="mt-3 w-full py-3 rounded-fly-md bg-[#F4F5F8] text-fly-ink font-semibold text-sm transition-opacity disabled:opacity-30"
+            className="mt-3 w-full py-3 rounded-fly-md bg-fly-fog text-fly-ink font-semibold text-sm transition-opacity disabled:opacity-30"
           >
             Отмена
           </button>
