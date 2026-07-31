@@ -55,7 +55,6 @@ export function useMatches(currentUserId: string | undefined): { matches: Profil
           gender: (info?.gender ?? undefined) as Profile['gender'],
           category: post.category as ProfileCategory,
           hobby: (post.hobby ?? undefined) as HobbyId | undefined,
-          online: false,
           quote: post.quote,
           age: info?.age ?? undefined,
           height: info?.height ?? undefined,

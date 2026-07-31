@@ -4,9 +4,10 @@ import type { Profile } from '../data/profiles'
 import { getIcebreakers } from '../data/icebreakers'
 import { getAgeWord } from '../lib/pluralize'
 import { useConversation, type ChatMessage } from '../lib/useConversation'
+import { useTypingChannel } from '../lib/useTypingChannel'
 import { getGenderColor } from '../lib/genderColor'
 import type { AppOutletContext } from './AppShell'
-import { BackArrowIcon, SendIcon } from './icons'
+import { BackArrowIcon, SendIcon, TypingDots } from './icons'
 
 interface ChatScreenProps {
   match: Profile
@@ -17,14 +18,16 @@ interface ChatScreenProps {
 // а вид, который MessagesScreen показывает вместо списка, когда выбрано совпадение -
 // так проще, чем заводить новый URL-путь ради одного экрана.
 export function ChatScreen({ match, onBack }: ChatScreenProps) {
-  const { currentUserId } = useOutletContext<AppOutletContext>()
+  const { currentUserId, onlineUserIds } = useOutletContext<AppOutletContext>()
   const { messages: dbMessages, loading, sendMessage } = useConversation(currentUserId, match.id)
+  const { theyAreTyping, notifyTyping } = useTypingChannel(currentUserId, match.id)
 
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const avatarColor = getGenderColor(match.gender)
+  const isOnline = onlineUserIds.has(match.id)
 
   // Пока не загрузили - список пуст (не мигаем заглушкой раньше времени). Если
   // загрузили и настоящих сообщений нет - показываем фразу из анкеты как будто
@@ -70,7 +73,17 @@ export function ChatScreen({ match, onBack }: ChatScreenProps) {
             {match.age !== undefined && match.height !== undefined && ', '}
             {match.height !== undefined && `${match.height} см`}
           </div>
-          <div className="text-xs text-fly-gray">{match.online ? 'В сети' : 'Не в сети'}</div>
+          {/* Пока собеседник печатает - показываем это вместо обычного "В сети"/"Не в
+              сети" (более сиюминутная информация важнее общего статуса), само
+              вернётся обратно через несколько секунд без новых нажатий (см.
+              TYPING_CLEAR_MS в typingChannel.ts) */}
+          {theyAreTyping ? (
+            <div className="text-xs font-semibold text-fly-coral flex items-center gap-1.5">
+              <TypingDots /> печатает…
+            </div>
+          ) : (
+            <div className="text-xs text-fly-gray">{isOnline ? 'В сети' : 'Не в сети'}</div>
+          )}
         </div>
       </div>
 
@@ -88,6 +101,14 @@ export function ChatScreen({ match, onBack }: ChatScreenProps) {
             {message.text}
           </div>
         ))}
+
+        {/* Пузырёк с точками - живое ощущение, что человек прямо сейчас пишет ответ,
+            а не просто статус текстом где-то в шапке */}
+        {theyAreTyping && (
+          <div className="self-start bg-fly-fog text-fly-coral px-3.5 py-2.5 rounded-fly-md">
+            <TypingDots />
+          </div>
+        )}
       </div>
 
       {/* Подсказки для начала разговора - показываются только пока не написали сами */}
@@ -112,7 +133,10 @@ export function ChatScreen({ match, onBack }: ChatScreenProps) {
       <div className="flex-shrink-0 flex items-center gap-2 px-4 py-3 border-t border-fly-hairline">
         <input
           value={draft}
-          onChange={(event) => setDraft(event.target.value)}
+          onChange={(event) => {
+            setDraft(event.target.value)
+            notifyTyping()
+          }}
           onKeyDown={(event) => {
             if (event.key === 'Enter') handleSend()
           }}

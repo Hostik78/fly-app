@@ -21,7 +21,6 @@ export interface Profile {
   gender?: 'male' | 'female' // пол анкеты — влияет на цвет карточки и букву на значке
   category: ProfileCategory // к какому фильтру относится анкета
   hobby?: HobbyId // конкретное хобби — заполнено только когда category === 'hobbies'
-  online: boolean // человек сейчас в сети (пока всегда false - см. useFeedProfiles.ts)
   isNew?: boolean // анкета появилась недавно (значок "New"), поле необязательное
   quote: string // короткая фраза от человека — то, что видно в карточке
   age?: number // возраст числом, чтобы можно было выделить его жирным

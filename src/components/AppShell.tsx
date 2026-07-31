@@ -1,13 +1,15 @@
 import { Suspense } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { GridIcon, MessageIcon, AccountIcon } from './icons'
+import { useOnlinePresence } from '../lib/useOnlinePresence'
 
-// currentUserId - единственное, что должно быть видно любому экрану внутри AppShell.
-// Раньше здесь же передавались matches/onLike (лайки жили в памяти App.tsx) - теперь
-// и лента (useFeedProfiles), и сообщения (useMatches) сами спрашивают у базы то, что
-// им нужно, поэтому делиться этим через контекст больше незачем.
+// currentUserId - id, который должен быть виден любому экрану внутри AppShell.
+// onlineUserIds - кто из ВСЕХ пользователей сейчас в сети (см. useOnlinePresence.ts) -
+// подключается один раз здесь, а не в каждом экране отдельно, чтобы не открывать
+// несколько одинаковых realtime-каналов на одного и того же человека.
 export interface AppOutletContext {
   currentUserId: string
+  onlineUserIds: Set<string>
 }
 
 interface AppShellProps {
@@ -19,6 +21,8 @@ interface AppShellProps {
 // место из React Router, куда подставляется нужный экран в зависимости от того,
 // какая вкладка выбрана: Лента / Сообщения / Аккаунт).
 export function AppShell({ currentUserId }: AppShellProps) {
+  const onlineUserIds = useOnlinePresence(currentUserId)
+
   return (
     <div className="h-full w-full bg-white flex flex-col overflow-hidden">
       {/* Имитация строки статуса телефона: время и код аэропорта (для атмосферы) */}
@@ -35,7 +39,7 @@ export function AppShell({ currentUserId }: AppShellProps) {
           статуса и нижние вкладки), а не только сама вкладка. */}
       <div className="flex-1 overflow-hidden">
         <Suspense fallback={<div className="h-full w-full bg-white" />}>
-          <Outlet context={{ currentUserId } satisfies AppOutletContext} />
+          <Outlet context={{ currentUserId, onlineUserIds } satisfies AppOutletContext} />
         </Suspense>
       </div>
 

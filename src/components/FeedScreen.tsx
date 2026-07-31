@@ -33,7 +33,7 @@ const hobbyFilters: { id: HobbyId | 'all'; label: string }[] = [{ id: 'all', lab
 export function FeedScreen() {
   // currentUserId пришёл из AppShell через контекст маршрута - нужен, чтобы запросить
   // ленту без своей же собственной публикации.
-  const { currentUserId } = useOutletContext<AppOutletContext>()
+  const { currentUserId, onlineUserIds } = useOutletContext<AppOutletContext>()
   const { profiles, loading, markLiked } = useFeedProfiles(currentUserId)
 
   // Сохраняет лайк в базу. ProfileCard сам показывает "лайкнуто" сразу (оптимистично)
@@ -141,7 +141,12 @@ export function FeedScreen() {
           // просто резко "дёргались" на новый список.
           <div key={activeFilter} className="fade-in flex flex-col gap-5 pt-4 pb-4">
             {visibleProfiles.map((profile) => (
-              <ProfileCard key={profile.id} profile={profile} onLike={handleLike} />
+              <ProfileCard
+                key={profile.id}
+                profile={profile}
+                online={onlineUserIds.has(profile.id)}
+                onLike={handleLike}
+              />
             ))}
 
             {/* Пусто из-за фильтра, но вообще люди в ленте есть */}

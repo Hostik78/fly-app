@@ -1,11 +1,12 @@
 import { useState, lazy, Suspense } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { MessageIcon } from './icons'
+import { MessageIcon, TypingDots } from './icons'
 import { getAgeWord } from '../lib/pluralize'
 import type { AppOutletContext } from './AppShell'
 import type { Profile } from '../data/profiles'
 import { useMatches } from '../lib/useMatches'
 import { getGenderColor } from '../lib/genderColor'
+import { useTypingStatus } from '../lib/useTypingStatus'
 
 // ChatScreen открывается не сразу, а только по клику на конкретное совпадение -
 // поэтому его код тоже грузим отдельным кусочком (см. подробное объяснение lazy(...) в App.tsx).
@@ -14,11 +15,22 @@ const ChatScreen = lazy(() => import('./ChatScreen').then((m) => ({ default: m.C
 // Экран "Сообщения". Показывает список совпадений (взаимный лайк), а по клику
 // на любое из них - открывает переписку с этим человеком (см. ChatScreen).
 export function MessagesScreen() {
-  const { currentUserId } = useOutletContext<AppOutletContext>()
+  const { currentUserId, onlineUserIds } = useOutletContext<AppOutletContext>()
   const { matches, loading } = useMatches(currentUserId)
 
   // Какое совпадение сейчас открыто как переписка. null - показываем список.
   const [openMatch, setOpenMatch] = useState<Profile | null>(null)
+
+  // "Печатает" сразу за всеми совпадениями в списке, не только за одним открытым
+  // разговором (см. useTypingStatus.ts) - id пересчитывается на каждый рендер,
+  // но сам хук сравнивает их как строку, а не по ссылке, лишних переподключений нет.
+  // Открытое сейчас совпадение (если есть) исключаем - за ним уже следит свой канал
+  // внутри самого ChatScreen (useTypingChannel), два одинаковых канала на одну и ту
+  // же пару людей не нужны, даже если это и не ломает саму функцию.
+  const typingIds = useTypingStatus(
+    currentUserId,
+    matches.filter((match) => match.id !== openMatch?.id).map((match) => match.id),
+  )
 
   if (openMatch) {
     return (
@@ -54,20 +66,38 @@ export function MessagesScreen() {
         <div className="flex-1 overflow-y-auto overscroll-contain">
           {matches.map((match) => {
             const avatarColor = getGenderColor(match.gender)
+            const isOnline = onlineUserIds.has(match.id)
+            const isTyping = typingIds.has(match.id)
             return (
               <button
                 key={match.id}
                 onClick={() => setOpenMatch(match)}
                 className="w-full flex items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-fly-fog"
               >
-                <div className="w-12 h-12 rounded-full flex-shrink-0" style={{ backgroundColor: avatarColor }} />
+                <div className="relative flex-shrink-0">
+                  <div className="w-12 h-12 rounded-full" style={{ backgroundColor: avatarColor }} />
+                  {/* Зелёный "маячок" в углу аватарки - виден, только пока человек в сети.
+                      border цветом фона экрана - создаёт эффект выреза, а не просто кружка поверх */}
+                  {isOnline && (
+                    <span className="absolute -right-0.5 -bottom-0.5 w-3.5 h-3.5 rounded-full bg-fly-online border-[2.5px] border-white" />
+                  )}
+                </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-semibold text-fly-ink">
                     {match.age !== undefined && `${match.age} ${getAgeWord(match.age)}`}
                     {match.age !== undefined && match.height !== undefined && ', '}
                     {match.height !== undefined && `${match.height} см`}
                   </div>
-                  <p className="text-xs text-fly-gray truncate">{match.quote}</p>
+                  {/* Пока человек печатает - вместо превью заметки показываем это,
+                      как только перестал (см. TYPING_CLEAR_MS в typingChannel.ts) -
+                      возвращается обычный текст сам собой */}
+                  {isTyping ? (
+                    <p className="text-xs font-semibold text-fly-coral flex items-center gap-1.5">
+                      <TypingDots /> печатает…
+                    </p>
+                  ) : (
+                    <p className="text-xs text-fly-gray truncate">{match.quote}</p>
+                  )}
                 </div>
               </button>
             )

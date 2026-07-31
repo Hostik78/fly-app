@@ -16,13 +16,18 @@ import { DotsIcon, HeartIcon } from './icons'
 // тонкой полоской слева, теперь это заливка целого "ярлычка" сверху карточки.
 interface ProfileCardProps {
   profile: Profile
+  // Человек сейчас в сети - НЕ часть profile, потому что это не свойство самой
+  // анкеты (та грузится один раз и не меняется поминутно), а постоянно живое
+  // состояние "прямо сейчас" (см. useOnlinePresence.ts). Не передано - считаем,
+  // что не в сети (не отправлять лишний запрос ради того, чего экран не показывает).
+  online?: boolean
   // Вызывается при лайке - сохраняет его в базу (см. FeedScreen.tsx). Асинхронная -
   // если не получилось (нет сети), кнопка визуально откатывается обратно (см. ниже).
   // Не передана - кнопки лайка вообще нет (так для карточек в "Сообщениях").
   onLike?: (profile: Profile) => Promise<void>
 }
 
-export function ProfileCard({ profile, onLike }: ProfileCardProps) {
+export function ProfileCard({ profile, online = false, onLike }: ProfileCardProps) {
   // liked - отметил ли пользователь эту анкету лайком. Берём из уже сохранённого
   // состояния (profile.likedByMe), а не всегда "нет" - иначе при повторном заходе
   // в ленту можно было бы по ошибке попробовать лайкнуть того же человека ещё раз.
@@ -95,7 +100,7 @@ export function ProfileCard({ profile, onLike }: ProfileCardProps) {
       )}
 
       <div className="flex items-center mt-3.5">
-        {profile.online && (
+        {online && (
           <span className="flex items-center gap-1.5 text-[11px] font-semibold text-fly-gray">
             <span className="w-1.5 h-1.5 rounded-full bg-fly-online" />
             Онлайн

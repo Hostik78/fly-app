@@ -89,6 +89,18 @@ export function AccountIcon() {
   )
 }
 
+// Три подпрыгивающие точки — индикатор "печатает…" (список "Сообщения" и переписка).
+// Анимация задана в index.css (.typing-dots) - тут только сама разметка.
+export function TypingDots() {
+  return (
+    <span className="typing-dots inline-flex items-center gap-[3px]">
+      <span className="w-[5px] h-[5px] rounded-full bg-current" />
+      <span className="w-[5px] h-[5px] rounded-full bg-current" />
+      <span className="w-[5px] h-[5px] rounded-full bg-current" />
+    </span>
+  )
+}
+
 // Иконка "искорка" — помечает варианты подсказок, по-настоящему сочинённые ИИ
 // (в отличие от заготовленных шаблонов). Фиолетовый - отдельный, второй акцент
 // приложения, зарезервированный именно за ИИ-функциями (см. index.css), чтобы

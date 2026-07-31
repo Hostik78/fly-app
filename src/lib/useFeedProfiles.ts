@@ -62,7 +62,6 @@ export function useFeedProfiles(
           gender: (info?.gender ?? undefined) as Profile['gender'],
           category: post.category as ProfileCategory,
           hobby: (post.hobby ?? undefined) as HobbyId | undefined,
-          online: false,
           isNew: now - new Date(post.created_at).getTime() < NEW_THRESHOLD_MS,
           quote: post.quote,
           age: info?.age ?? undefined,
