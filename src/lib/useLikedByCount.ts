@@ -20,7 +20,12 @@ export function useLikedByCount(currentUserId: string | undefined): { count: num
     let cancelled = false
     setLoading(true)
 
-    supabase.rpc('count_pending_likes').then(({ data }) => {
+    supabase.rpc('count_pending_likes').then(({ data, error }) => {
+      // error здесь не бросает исключение (это особенность supabase-js), поэтому
+      // проверяем его отдельно - иначе, например, случайно пропавшее право на вызов
+      // функции (как уже один раз случилось с этой самой функцией) молча показало
+      // бы "лайков нет", неотличимо от честного нуля, без единого предупреждения.
+      if (error) console.error('count_pending_likes failed:', error)
       if (!cancelled) {
         setCount(data ?? 0)
         setLoading(false)

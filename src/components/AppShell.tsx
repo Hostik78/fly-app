@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { GridIcon, MessageIcon, AccountIcon } from './icons'
 
@@ -27,9 +28,15 @@ export function AppShell({ currentUserId }: AppShellProps) {
       </div>
 
       {/* Сюда React Router подставляет текущий экран (Лента/Сообщения/Аккаунт).
-          context передаёт currentUserId вниз, не проходя его через пропсы каждого маршрута. */}
+          context передаёт currentUserId вниз, не проходя его через пропсы каждого маршрута.
+          Suspense - именно здесь, а не выше по дереву (в App.tsx): AccountScreen грузится
+          отдельным кусочком кода (lazy, см. App.tsx) - если бы граница ожидания стояла
+          выше, на время его догрузки пропадала бы вообще вся навигация ниже (строка
+          статуса и нижние вкладки), а не только сама вкладка. */}
       <div className="flex-1 overflow-hidden">
-        <Outlet context={{ currentUserId } satisfies AppOutletContext} />
+        <Suspense fallback={<div className="h-full w-full bg-white" />}>
+          <Outlet context={{ currentUserId } satisfies AppOutletContext} />
+        </Suspense>
       </div>
 
       {/* Нижняя навигация — не скроллится и не сжимается, всегда видна.
