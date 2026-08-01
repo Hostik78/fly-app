@@ -32,6 +32,24 @@ export type Database = {
         }
         Relationships: []
       }
+      match_notifications: {
+        Row: {
+          created_at: string
+          user_id_a: string
+          user_id_b: string
+        }
+        Insert: {
+          created_at?: string
+          user_id_a: string
+          user_id_b: string
+        }
+        Update: {
+          created_at?: string
+          user_id_a?: string
+          user_id_b?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           created_at: string
@@ -106,6 +124,33 @@ export type Database = {
           gender?: string | null
           height?: number | null
           languages?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
           user_id?: string
         }
         Relationships: []

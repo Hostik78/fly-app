@@ -8,6 +8,7 @@ import { useOutletContext } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { getLanguageCodesFromNames } from '../data/languages'
 import { useLikedByCount } from '../lib/useLikedByCount'
+import { usePushNotifications } from '../lib/usePushNotifications'
 import { ProfileSetupScreen } from './ProfileSetupScreen'
 import { CreateStatusScreen } from './CreateStatusScreen'
 import type { AppOutletContext } from './AppShell'
@@ -30,6 +31,7 @@ interface PostRow {
 export function AccountScreen() {
   const { currentUserId } = useOutletContext<AppOutletContext>()
   const { count: likedByCount } = useLikedByCount(currentUserId)
+  const pushNotifications = usePushNotifications(currentUserId)
   const [profile, setProfile] = useState<ProfileRow | null>(null)
   const [loadingProfile, setLoadingProfile] = useState(false)
   const [post, setPost] = useState<PostRow | null>(null)
@@ -161,8 +163,43 @@ export function AccountScreen() {
             )}
           </div>
 
+          {/*
+            Уведомления - через стандартный Web Push (см. usePushNotifications.ts),
+            не своя рисованная система. unsupported/denied - показываем как есть,
+            не нажимается: "denied" браузер не даёт спросить повторно из кода вообще,
+            это можно поменять только вручную в настройках самого браузера.
+          */}
+          {pushNotifications.status === 'unsupported' ? (
+            <div className="px-4 py-3 rounded-fly-md bg-fly-fog text-sm text-fly-gray">
+              Уведомления не поддерживаются этим браузером
+            </div>
+          ) : pushNotifications.status === 'denied' ? (
+            <div className="px-4 py-3 rounded-fly-md bg-fly-fog text-sm text-fly-gray">
+              Уведомления запрещены в браузере
+            </div>
+          ) : (
+            <button
+              type="button"
+              disabled={pushNotifications.loading}
+              onClick={pushNotifications.subscribed ? pushNotifications.unsubscribe : pushNotifications.subscribe}
+              className="px-4 py-3 rounded-fly-md bg-fly-fog text-sm text-fly-ink text-left transition-opacity disabled:opacity-60 flex items-center justify-between"
+            >
+              <span>Уведомления</span>
+              <span className="text-xs font-semibold text-fly-gray">
+                {pushNotifications.loading
+                  ? '…'
+                  : pushNotifications.subscribed
+                    ? 'Включены · выключить'
+                    : 'Включить'}
+              </span>
+            </button>
+          )}
+          {pushNotifications.error && (
+            <p className="text-xs text-fly-gray px-1">{pushNotifications.error}</p>
+          )}
+
           {/* Остальные пункты - пока декоративные, без действия по клику */}
-          {['Настройки уведомлений', 'Помощь'].map((item) => (
+          {['Помощь'].map((item) => (
             <div key={item} className="px-4 py-3 rounded-fly-md bg-fly-fog text-sm text-fly-ink">
               {item}
             </div>

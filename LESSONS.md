@@ -120,3 +120,16 @@ https://api.supabase.com/v1/projects/<ref>`), пароль - через `PGPASSW
 from information_schema.routine_privileges where routine_name = '<fn>';` - и
 обязательно прогонять `supabase db advisors` после любой новой функции с
 `security definer`, он ловит именно такие случаи.
+
+**Уточнение (2026-07-31, на функции notify_push_webhook)**: бывает и наоборот -
+право оказывается у `public`, а не у `anon`/`authenticated` напрямую (обычное
+поведение Postgres: `create function` сам выдаёт `EXECUTE` роли `public`, если
+явно не отозвать - это ДРУГОЙ источник гранта, чем разобранная выше особенность
+Supabase). На этой функции `revoke ... from anon, authenticated` не помог -
+предупреждение осталось, а прямая проверка показала грант именно у `public`.
+Помогло только `revoke execute on function public.<fn>() from public;` отдельно.
+
+Итог: источника гранта два, независимых друг от друга, и функция может
+пострадать от одного, другого или обоих сразу - отзывать нужно явно **и у
+`public`, и у `anon, authenticated`** каждый раз, не полагаясь, что раз в прошлый
+раз хватило одного - хватит и в этот.
