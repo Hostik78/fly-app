@@ -1,6 +1,10 @@
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" fill="#FFFFFF"/>
+  <!-- Цвета - из текущей дизайн-системы "Живой" (см. index.css): тёплый кремовый
+       фон, тёплый тёмный "Fl", коралловый акцент "y" - раньше здесь ещё были
+       цвета ДО редизайна (холодный синий "y", белый фон), значок на экране
+       Домой не совпадал с тем, что видно внутри самого приложения. -->
+  <rect width="512" height="512" fill="#FFF6F1"/>
   <text x="256" y="300" font-family="Arial, Helvetica, sans-serif" font-size="160" font-weight="700" text-anchor="middle">
-    <tspan fill="#1C2233">Fl</tspan><tspan fill="#2E7BC4">y</tspan>
+    <tspan fill="#241726">Fl</tspan><tspan fill="#FF4B39">y</tspan>
   </text>
 </svg>
