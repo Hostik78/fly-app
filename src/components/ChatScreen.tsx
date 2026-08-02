@@ -62,7 +62,7 @@ export function ChatScreen({ match, onBack }: ChatScreenProps) {
   return (
     <div className="h-full w-full flex flex-col overflow-hidden">
       {/* Шапка переписки: кнопка назад к списку + кто это */}
-      <div className="flex-shrink-0 flex items-center gap-3 px-4 pt-3 pb-3 border-b border-fly-hairline">
+      <div className="flex-shrink-0 flex items-center gap-3 px-4 pt-3 pb-3 bg-fly-glass backdrop-blur-fly-glass border-b border-fly-glass-border">
         {/* w-11 h-11 (44px) - минимальный удобный размер кнопки под палец на
             телефоне (стандарт Apple/Android), а не только под курсор мыши -
             сама иконка стрелки при этом того же размера, просто больше места
@@ -85,7 +85,7 @@ export function ChatScreen({ match, onBack }: ChatScreenProps) {
               вернётся обратно через несколько секунд без новых нажатий (см.
               TYPING_CLEAR_MS в typingChannel.ts) */}
           {theyAreTyping ? (
-            <div className="text-xs font-semibold text-fly-coral flex items-center gap-1.5">
+            <div className="text-xs font-semibold text-fly-accent flex items-center gap-1.5">
               <TypingDots /> печатает…
             </div>
           ) : (
@@ -112,7 +112,7 @@ export function ChatScreen({ match, onBack }: ChatScreenProps) {
         {/* Пузырёк с точками - живое ощущение, что человек прямо сейчас пишет ответ,
             а не просто статус текстом где-то в шапке */}
         {theyAreTyping && (
-          <div className="self-start bg-fly-fog text-fly-coral px-3.5 py-2.5 rounded-fly-md">
+          <div className="self-start bg-fly-fog text-fly-accent px-3.5 py-2.5 rounded-fly-md">
             <TypingDots />
           </div>
         )}
@@ -137,7 +137,7 @@ export function ChatScreen({ match, onBack }: ChatScreenProps) {
       {error && <p className="flex-shrink-0 px-4 pb-1 text-xs text-fly-gray text-center">{error}</p>}
 
       {/* Поле ввода нового сообщения - всегда внизу, не скроллится вместе с лентой */}
-      <div className="flex-shrink-0 flex items-center gap-2 px-4 py-3 border-t border-fly-hairline">
+      <div className="flex-shrink-0 flex items-center gap-2 px-4 py-3 bg-fly-glass backdrop-blur-fly-glass border-t border-fly-glass-border">
         <input
           value={draft}
           onChange={(event) => {
@@ -148,13 +148,13 @@ export function ChatScreen({ match, onBack }: ChatScreenProps) {
             if (event.key === 'Enter') handleSend()
           }}
           placeholder="Написать сообщение..."
-          className="flex-1 bg-fly-fog rounded-fly-md px-4 py-2.5 text-sm text-fly-ink outline-none border border-transparent focus:border-fly-coral"
+          className="flex-1 bg-fly-fog rounded-fly-md px-4 py-2.5 text-sm text-fly-ink outline-none border border-transparent focus:border-fly-accent"
         />
         {/* w-11 h-11 (44px) - минимальный удобный размер под палец (было 40px) */}
         <button
           onClick={handleSend}
           disabled={!draft.trim() || sending}
-          className="w-11 h-11 rounded-fly-md bg-fly-coral flex items-center justify-center flex-shrink-0 transition-opacity disabled:opacity-30"
+          className="w-11 h-11 rounded-fly-md bg-fly-accent flex items-center justify-center flex-shrink-0 transition-opacity disabled:opacity-30"
         >
           <SendIcon />
         </button>

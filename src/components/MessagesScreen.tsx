@@ -34,7 +34,7 @@ export function MessagesScreen() {
 
   if (openMatch) {
     return (
-      <Suspense fallback={<div className="h-full w-full bg-white" />}>
+      <Suspense fallback={<div className="h-full w-full" />}>
         <ChatScreen match={openMatch} onBack={() => setOpenMatch(null)} />
       </Suspense>
     )
@@ -52,8 +52,8 @@ export function MessagesScreen() {
       ) : matches.length === 0 ? (
         // Пустое состояние по центру - совпадений пока нет
         <div className="flex-1 flex flex-col items-center justify-center gap-3 px-10 text-center">
-          <div className="w-14 h-14 rounded-full bg-fly-tint-coral flex items-center justify-center">
-            <div className="w-6 h-6 text-fly-coral">
+          <div className="w-14 h-14 rounded-full bg-fly-tint-accent flex items-center justify-center">
+            <div className="w-6 h-6 text-fly-accent">
               <MessageIcon />
             </div>
           </div>
@@ -79,7 +79,7 @@ export function MessagesScreen() {
                   {/* Зелёный "маячок" в углу аватарки - виден, только пока человек в сети.
                       border цветом фона экрана - создаёт эффект выреза, а не просто кружка поверх */}
                   {isOnline && (
-                    <span className="absolute -right-0.5 -bottom-0.5 w-3.5 h-3.5 rounded-full bg-fly-online border-[2.5px] border-white" />
+                    <span className="absolute -right-0.5 -bottom-0.5 w-3.5 h-3.5 rounded-full bg-fly-online border-[2.5px] border-fly-bg" />
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -92,7 +92,7 @@ export function MessagesScreen() {
                       как только перестал (см. TYPING_CLEAR_MS в typingChannel.ts) -
                       возвращается обычный текст сам собой */}
                   {isTyping ? (
-                    <p className="text-xs font-semibold text-fly-coral flex items-center gap-1.5">
+                    <p className="text-xs font-semibold text-fly-accent flex items-center gap-1.5">
                       <TypingDots /> печатает…
                     </p>
                   ) : (

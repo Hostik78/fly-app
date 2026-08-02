@@ -46,7 +46,7 @@ function RequireStatus({ hasPosted }: { hasPosted: boolean }) {
 // "Что именно требует нахождения в аэропорту" (2026-07-29-airport-geofence-design.md).
 function RequireAirport({ children }: { children: ReactNode }) {
   const { status, distanceKm, retry } = useAirportPresence()
-  if (status === 'checking') return <div className="h-full w-full bg-white" />
+  if (status === 'checking') return <div className="h-full w-full" />
   if (status !== 'at-airport') {
     return <NotAtAirportScreen status={status} distanceKm={distanceKm} onRetry={retry} />
   }
@@ -136,7 +136,7 @@ function App() {
 
   const content = overallLoading ? (
     // Проверка входа занимает доли секунды - полноценный экран загрузки не нужен
-    <div className="h-full w-full bg-white" />
+    <div className="h-full w-full" />
   ) : !session ? (
     <LoginScreen />
   ) : !hasProfile ? (

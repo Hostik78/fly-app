@@ -58,7 +58,7 @@ export function ProfileCard({ profile, online = false, onLike }: ProfileCardProp
   }
 
   return (
-    <div className="relative bg-white rounded-tl-[34px] rounded-tr-[34px] rounded-br-[34px] rounded-bl-[14px] shadow-[0_8px_30px_rgba(30,40,70,0.10)] pl-5 pr-4 py-4">
+    <div className="relative bg-fly-glass backdrop-blur-fly-glass border border-fly-glass-border rounded-fly-glass shadow-[0_8px_24px_rgba(60,80,120,0.12)] pl-5 pr-4 py-4">
       {/* Верхняя строка: категория (+хобби, если есть) слева, кнопка-меню справа.
           Заливка ярлычка - сплошной цвет по полу (не светлый оттенок с цветным текстом,
           как было раньше) - это и есть "живой", более смелый язык этого направления. */}
@@ -117,7 +117,7 @@ export function ProfileCard({ profile, online = false, onLike }: ProfileCardProp
           <button
             onClick={handleLikeClick}
             className={`ml-auto w-11 h-11 rounded-fly-md flex items-center justify-center transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] active:scale-75 hover:scale-105 ${
-              liked ? 'bg-fly-coral scale-110' : 'bg-fly-tint-coral scale-100'
+              liked ? 'bg-fly-accent scale-110' : 'bg-fly-tint-accent scale-100'
             }`}
           >
             <HeartIcon filled={liked} />

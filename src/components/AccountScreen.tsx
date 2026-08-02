@@ -124,7 +124,7 @@ export function AccountScreen() {
       <div className="flex-1 overflow-y-auto overscroll-contain px-5 pt-4 pb-4">
         {/* Заглушка вместо фото профиля */}
         <div className="flex flex-col items-center gap-3 pb-6">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-fly-tint-coral to-[#FFB49E]" />
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-fly-tint-accent to-fly-accent" />
           <p className="text-sm text-fly-gray">Здесь будет ваша анкета</p>
         </div>
 
@@ -133,7 +133,7 @@ export function AccountScreen() {
             type="button"
             disabled={loadingProfile}
             onClick={startEditingProfile}
-            className="px-4 py-3 rounded-fly-md bg-fly-fog text-sm text-fly-ink text-left transition-opacity disabled:opacity-60"
+            className="px-4 py-3 rounded-fly-md bg-fly-glass backdrop-blur-fly-glass border border-fly-glass-border text-sm text-fly-ink text-left transition-opacity disabled:opacity-60"
           >
             {loadingProfile ? 'Загружаем…' : 'Редактировать анкету'}
           </button>
@@ -142,7 +142,7 @@ export function AccountScreen() {
             type="button"
             disabled={loadingPost}
             onClick={startEditingPost}
-            className="px-4 py-3 rounded-fly-md bg-fly-fog text-sm text-fly-ink text-left transition-opacity disabled:opacity-60"
+            className="px-4 py-3 rounded-fly-md bg-fly-glass backdrop-blur-fly-glass border border-fly-glass-border text-sm text-fly-ink text-left transition-opacity disabled:opacity-60"
           >
             {loadingPost ? 'Загружаем…' : 'Изменить заметку'}
           </button>
@@ -154,10 +154,10 @@ export function AccountScreen() {
             Число не показываем вовсе, если оно 0 - пустой значок "0" выглядел бы как
             декоративный мусор, а не как настоящая информация.
           */}
-          <div className="px-4 py-3 rounded-fly-md bg-fly-fog text-sm text-fly-ink flex items-center justify-between">
+          <div className="px-4 py-3 rounded-fly-md bg-fly-glass backdrop-blur-fly-glass border border-fly-glass-border text-sm text-fly-ink flex items-center justify-between">
             <span>Кто меня лайкнул</span>
             {likedByCount > 0 && (
-              <span className="text-xs font-bold text-white bg-fly-coral min-w-[20px] px-2 py-0.5 rounded-full text-center">
+              <span className="text-xs font-bold text-white bg-fly-accent min-w-[20px] px-2 py-0.5 rounded-full text-center">
                 {likedByCount}
               </span>
             )}
@@ -170,11 +170,11 @@ export function AccountScreen() {
             это можно поменять только вручную в настройках самого браузера.
           */}
           {pushNotifications.status === 'unsupported' ? (
-            <div className="px-4 py-3 rounded-fly-md bg-fly-fog text-sm text-fly-gray">
+            <div className="px-4 py-3 rounded-fly-md bg-fly-glass backdrop-blur-fly-glass border border-fly-glass-border text-sm text-fly-gray">
               Уведомления не поддерживаются этим браузером
             </div>
           ) : pushNotifications.status === 'denied' ? (
-            <div className="px-4 py-3 rounded-fly-md bg-fly-fog text-sm text-fly-gray">
+            <div className="px-4 py-3 rounded-fly-md bg-fly-glass backdrop-blur-fly-glass border border-fly-glass-border text-sm text-fly-gray">
               Уведомления запрещены в браузере
             </div>
           ) : (
@@ -182,7 +182,7 @@ export function AccountScreen() {
               type="button"
               disabled={pushNotifications.loading}
               onClick={pushNotifications.subscribed ? pushNotifications.unsubscribe : pushNotifications.subscribe}
-              className="px-4 py-3 rounded-fly-md bg-fly-fog text-sm text-fly-ink text-left transition-opacity disabled:opacity-60 flex items-center justify-between"
+              className="px-4 py-3 rounded-fly-md bg-fly-glass backdrop-blur-fly-glass border border-fly-glass-border text-sm text-fly-ink text-left transition-opacity disabled:opacity-60 flex items-center justify-between"
             >
               <span>Уведомления</span>
               <span className="text-xs font-semibold text-fly-gray">
@@ -200,7 +200,7 @@ export function AccountScreen() {
 
           {/* Остальные пункты - пока декоративные, без действия по клику */}
           {['Помощь'].map((item) => (
-            <div key={item} className="px-4 py-3 rounded-fly-md bg-fly-fog text-sm text-fly-ink">
+            <div key={item} className="px-4 py-3 rounded-fly-md bg-fly-glass backdrop-blur-fly-glass border border-fly-glass-border text-sm text-fly-ink">
               {item}
             </div>
           ))}
@@ -208,7 +208,7 @@ export function AccountScreen() {
           <button
             type="button"
             onClick={handleSignOut}
-            className="px-4 py-3 rounded-fly-md bg-fly-fog text-sm text-fly-ink text-left"
+            className="px-4 py-3 rounded-fly-md bg-fly-glass backdrop-blur-fly-glass border border-fly-glass-border text-sm text-fly-ink text-left"
           >
             Выйти
           </button>

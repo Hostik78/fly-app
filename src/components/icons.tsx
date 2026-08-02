@@ -23,8 +23,8 @@ export function DotsIcon() {
 }
 
 // Иконка "сердце" — кнопка "лайк" на карточке анкеты.
-// filled === true (анкета отмечена лайком) — сердце залито белым, как на кнопке кораллового цвета.
-// filled === false — сердце нарисовано только контуром кораллового цвета, без заливки.
+// filled === true (анкета отмечена лайком) — сердце залито белым, как на кнопке акцентного цвета.
+// filled === false — сердце нарисовано только контуром акцентного цвета, без заливки.
 export function HeartIcon({ filled }: { filled: boolean }) {
   if (filled) {
     return (
@@ -34,7 +34,7 @@ export function HeartIcon({ filled }: { filled: boolean }) {
     )
   }
   return (
-    <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className="w-5 h-5 stroke-fly-coral">
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className="w-5 h-5 stroke-fly-accent">
       <path d="M12 21s-7-4.35-10-9.28C0.5 8.5 2 4 6.5 4c2.2 0 3.7 1.3 5.5 3.3C13.8 5.3 15.3 4 17.5 4 22 4 23.5 8.5 22 11.72 19 16.65 12 21 12 21z" />
     </svg>
   )

@@ -60,7 +60,7 @@ export function CreateStatusScreen({ initialValues, submitLabel, onCancel, onSub
   const canSubmit = quote.trim().length > 0 && (category !== 'hobbies' || hobby !== null)
 
   return (
-    <div className="h-full w-full bg-white flex flex-col overflow-hidden">
+    <div className="h-full w-full flex flex-col overflow-hidden">
       {/* Экран во весь экран, без общей рамки AppShell - safe-area отступы нужны
           здесь сами по себе (см. подробное объяснение в AppShell.tsx). */}
       <div
@@ -71,7 +71,7 @@ export function CreateStatusScreen({ initialValues, submitLabel, onCancel, onSub
         }}
       >
         <div className="text-xl font-semibold mb-1">
-          Fl<span className="text-fly-coral">y</span>
+          Fl<span className="text-fly-accent">y</span>
         </div>
         <h1 className="text-2xl font-semibold text-fly-ink mt-6">
           {initialValues ? 'Изменить заметку' : 'Что вы ищете сейчас?'}
@@ -86,7 +86,7 @@ export function CreateStatusScreen({ initialValues, submitLabel, onCancel, onSub
           onChange={(event) => setQuote(event.target.value)}
           placeholder="Например: жду посадку у 14 гейта, есть час свободного времени..."
           rows={4}
-          className="mt-6 w-full bg-fly-fog rounded-fly-md px-4 py-3 text-sm text-fly-ink outline-none border border-transparent focus:border-fly-coral resize-none"
+          className="mt-6 w-full bg-fly-fog rounded-fly-md px-4 py-3 text-sm text-fly-ink outline-none border border-transparent focus:border-fly-accent resize-none"
         />
 
         <SuggestionPanel category={category} quote={quote} onSelect={setQuote} />
@@ -147,7 +147,7 @@ export function CreateStatusScreen({ initialValues, submitLabel, onCancel, onSub
           type="button"
           disabled={!canSubmit || submitting}
           onClick={handleSubmit}
-          className="mt-8 w-full py-3.5 rounded-fly-md bg-fly-coral text-white font-semibold text-sm transition-opacity disabled:opacity-30"
+          className="mt-8 w-full py-3.5 rounded-fly-md bg-fly-accent text-white font-semibold text-sm transition-opacity disabled:opacity-30"
         >
           {submitting ? 'Публикуем…' : (submitLabel ?? 'Опубликовать')}
         </button>

@@ -28,14 +28,14 @@ export function LoginScreen() {
   if (sent) {
     return (
       <div
-        className="h-full w-full bg-white flex flex-col items-center justify-center gap-4 px-8 text-center"
+        className="h-full w-full flex flex-col items-center justify-center gap-4 px-8 text-center"
         style={{
           paddingTop: 'calc(1rem + env(safe-area-inset-top))',
           paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))',
         }}
       >
         <div className="text-2xl font-semibold">
-          Fl<span className="text-fly-coral">y</span>
+          Fl<span className="text-fly-accent">y</span>
         </div>
         <p className="text-sm text-fly-gray leading-relaxed">
           Мы отправили ссылку для входа на {email}. Откройте письмо и перейдите по ссылке.
@@ -46,11 +46,11 @@ export function LoginScreen() {
 
   return (
     <div
-      className="h-full w-full bg-white flex flex-col items-center justify-center gap-6 px-8"
+      className="h-full w-full flex flex-col items-center justify-center gap-6 px-8"
       style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="text-2xl font-semibold">
-        Fl<span className="text-fly-coral">y</span>
+        Fl<span className="text-fly-accent">y</span>
       </div>
       <p className="text-sm text-fly-gray text-center leading-relaxed">
         Чтобы продолжить, введите почту — пришлём ссылку для входа
@@ -60,7 +60,7 @@ export function LoginScreen() {
         value={email}
         onChange={(event) => setEmail(event.target.value)}
         placeholder="you@example.com"
-        className="w-full max-w-xs bg-fly-fog rounded-fly-md px-4 py-3 text-sm text-fly-ink outline-none border border-transparent focus:border-fly-coral"
+        className="w-full max-w-xs bg-fly-fog rounded-fly-md px-4 py-3 text-sm text-fly-ink outline-none border border-transparent focus:border-fly-accent"
       />
       <button
         type="button"

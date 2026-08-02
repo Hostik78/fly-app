@@ -70,14 +70,14 @@ export function FeedScreen() {
   return (
     // h-full - занимает всю высоту области экрана, которую выделяет AppShell под контент.
     // overflow-hidden - ничего не должно вылезать наружу.
-    <div className="h-full w-full bg-white flex flex-col overflow-hidden">
+    <div className="h-full w-full flex flex-col overflow-hidden">
 
       {/* Верхний блок (шапка, фильтры) не скроллится и не сжимается - flex-shrink-0 */}
       <div className="flex-shrink-0">
         {/* Шапка: название приложения слева, кнопка меню справа */}
         <div className="flex items-center justify-between px-5 pt-3">
           <div className="text-xl font-semibold">
-            Fl<span className="text-fly-coral">y</span>
+            Fl<span className="text-fly-accent">y</span>
           </div>
           {/* w-11 h-11 (44px) - минимальный удобный размер под палец (было 38px) */}
           <button className="w-11 h-11 rounded-fly-md bg-fly-fog flex items-center justify-center transition-colors hover:bg-fly-fog-strong">

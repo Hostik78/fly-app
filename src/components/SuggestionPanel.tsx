@@ -84,7 +84,7 @@ export function SuggestionPanel({ category, quote, onSelect }: SuggestionPanelPr
       </button>
 
       {isOpen && (
-        <div className="mt-2 flex flex-col gap-2 bg-fly-fog rounded-fly-md p-3">
+        <div className="mt-2 flex flex-col gap-2 bg-fly-glass backdrop-blur-fly-glass border border-fly-glass-border rounded-fly-md p-3">
           {instant.map((text) => (
             <button
               key={text}

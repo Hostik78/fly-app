@@ -25,7 +25,7 @@ export function AppShell({ currentUserId }: AppShellProps) {
   const onlineUserIds = useOnlinePresence(currentUserId)
 
   return (
-    <div className="h-full w-full bg-white flex flex-col overflow-hidden">
+    <div className="h-full w-full flex flex-col overflow-hidden">
       {/* Настоящую строку статуса (время, заряд, сигнал) рисует сама операционная
           система поверх этого места - мы её не имитируем (раньше тут было нарисовано
           вручную "9:41", что на настоящем телефоне выглядело бы как чужое неправильное
@@ -47,7 +47,7 @@ export function AppShell({ currentUserId }: AppShellProps) {
           выше, на время его догрузки пропадала бы вообще вся навигация ниже (строка
           статуса и нижние вкладки), а не только сама вкладка. */}
       <div className="flex-1 overflow-hidden">
-        <Suspense fallback={<div className="h-full w-full bg-white" />}>
+        <Suspense fallback={<div className="h-full w-full" />}>
           <Outlet context={{ currentUserId, onlineUserIds } satisfies AppOutletContext} />
         </Suspense>
       </div>
@@ -58,7 +58,7 @@ export function AppShell({ currentUserId }: AppShellProps) {
           есть полоска-индикатор возврата на главный экран - без этого отступа
           вкладки сидели бы слишком близко к ней. */}
       <nav
-        className="flex-shrink-0 flex justify-around items-center px-5 pt-4 bg-white"
+        className="flex-shrink-0 flex justify-around items-center px-5 pt-4 bg-fly-glass backdrop-blur-fly-glass border-t border-fly-glass-border"
         style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
       >
         <NavLink to="/" end className={navLinkClass}>

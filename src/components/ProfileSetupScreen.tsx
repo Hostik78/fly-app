@@ -87,7 +87,7 @@ export function ProfileSetupScreen({ initialValues, submitLabel, onCancel, onSub
   }
 
   return (
-    <div className="h-full w-full bg-white flex flex-col overflow-hidden">
+    <div className="h-full w-full flex flex-col overflow-hidden">
       {/* Экран во весь экран, без общей рамки AppShell - safe-area отступы нужны
           здесь сами по себе (см. подробное объяснение в AppShell.tsx). */}
       <div
@@ -98,7 +98,7 @@ export function ProfileSetupScreen({ initialValues, submitLabel, onCancel, onSub
         }}
       >
         <div className="text-xl font-semibold mb-1">
-          Fl<span className="text-fly-coral">y</span>
+          Fl<span className="text-fly-accent">y</span>
         </div>
         <h1 className="text-2xl font-semibold text-fly-ink mt-6">
           {initialValues ? 'Редактировать анкету' : 'Расскажите о себе'}
@@ -139,7 +139,7 @@ export function ProfileSetupScreen({ initialValues, submitLabel, onCancel, onSub
         <select
           value={ageInput}
           onChange={(event) => setAgeInput(event.target.value)}
-          className="w-full bg-fly-fog rounded-fly-md px-4 py-3 text-sm text-fly-ink outline-none border border-transparent focus:border-fly-coral"
+          className="w-full bg-fly-fog rounded-fly-md px-4 py-3 text-sm text-fly-ink outline-none border border-transparent focus:border-fly-accent"
         >
           <option value="" disabled>
             Выберите возраст
@@ -155,7 +155,7 @@ export function ProfileSetupScreen({ initialValues, submitLabel, onCancel, onSub
         <select
           value={heightInput}
           onChange={(event) => setHeightInput(event.target.value)}
-          className="w-full bg-fly-fog rounded-fly-md px-4 py-3 text-sm text-fly-ink outline-none border border-transparent focus:border-fly-coral"
+          className="w-full bg-fly-fog rounded-fly-md px-4 py-3 text-sm text-fly-ink outline-none border border-transparent focus:border-fly-accent"
         >
           <option value="" disabled>
             Выберите рост
@@ -171,7 +171,7 @@ export function ProfileSetupScreen({ initialValues, submitLabel, onCancel, onSub
         <button
           type="button"
           onClick={() => setLanguagePickerOpen((open) => !open)}
-          className="w-full bg-fly-fog rounded-fly-md px-4 py-3 text-sm text-left outline-none border border-transparent focus:border-fly-coral"
+          className="w-full bg-fly-fog rounded-fly-md px-4 py-3 text-sm text-left outline-none border border-transparent focus:border-fly-accent"
         >
           {selectedLanguages.length > 0 ? (
             <span className="text-fly-ink">{selectedLanguages.map(getLanguageName).join(', ')}</span>
@@ -181,13 +181,13 @@ export function ProfileSetupScreen({ initialValues, submitLabel, onCancel, onSub
         </button>
 
         {languagePickerOpen && (
-          <div className="mt-2 rounded-fly-md border border-fly-hairline overflow-hidden">
+          <div className="mt-2 rounded-fly-md bg-fly-glass backdrop-blur-fly-glass border border-fly-glass-border overflow-hidden">
             <input
               type="text"
               value={languageSearch}
               onChange={(event) => setLanguageSearch(event.target.value)}
               placeholder="Поиск..."
-              className="w-full px-4 py-2.5 text-sm text-fly-ink outline-none border-b border-fly-hairline"
+              className="w-full px-4 py-2.5 text-sm text-fly-ink outline-none border-b border-fly-glass-border"
             />
             <div className="max-h-48 overflow-y-auto overscroll-contain">
               {filteredLanguages.map(({ code, name }) => (
@@ -211,7 +211,7 @@ export function ProfileSetupScreen({ initialValues, submitLabel, onCancel, onSub
           type="button"
           disabled={submitting}
           onClick={handleSubmit}
-          className="mt-8 w-full py-3.5 rounded-fly-md bg-fly-coral text-white font-semibold text-sm transition-opacity disabled:opacity-30"
+          className="mt-8 w-full py-3.5 rounded-fly-md bg-fly-accent text-white font-semibold text-sm transition-opacity disabled:opacity-30"
         >
           {submitting ? 'Сохраняем…' : (submitLabel ?? 'Продолжить')}
         </button>
