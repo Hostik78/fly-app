@@ -110,13 +110,13 @@ export function ProfileCard({ profile, online = false, onLike }: ProfileCardProp
         {/* Кнопка "лайк" — только если onLike передан (см. комментарий у пропса выше).
             ml-auto прижимает её вправо независимо от того, есть ли значок "Онлайн" слева.
             w-11 h-11 (44px) - минимальный удобный размер под палец (было 40px).
-            Пружинящий отклик (cubic-bezier с "перелётом") - фирменное движение "Живого" -
-            вместо обычного плавного scale, кнопка чуть проскакивает нужный размер и
-            возвращается, как на макете. */}
+            Обычный плавный отклик (ease-out, без "перелёта") - в "Стекле" (в отличие
+            от прошлого "Живого") движение спокойное, без пружинного отскока -
+            это часть самого направления, не только цвета/прозрачность. */}
         {onLike && (
           <button
             onClick={handleLikeClick}
-            className={`ml-auto w-11 h-11 rounded-fly-md flex items-center justify-center transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] active:scale-75 hover:scale-105 ${
+            className={`ml-auto w-11 h-11 rounded-fly-md flex items-center justify-center transition-transform duration-300 ease-out active:scale-90 hover:scale-105 ${
               liked ? 'bg-fly-accent scale-110' : 'bg-fly-tint-accent scale-100'
             }`}
           >

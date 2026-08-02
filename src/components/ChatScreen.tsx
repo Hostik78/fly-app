@@ -101,7 +101,7 @@ export function ChatScreen({ match, onBack }: ChatScreenProps) {
             key={message.id}
             className={`max-w-[75%] px-3.5 py-2.5 rounded-fly-md text-sm leading-relaxed ${
               message.from === 'me'
-                ? 'self-end bg-fly-ink text-white'
+                ? 'self-end bg-fly-accent text-white'
                 : 'self-start bg-fly-fog text-fly-ink'
             }`}
           >
