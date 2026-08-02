@@ -63,7 +63,14 @@ export function ChatScreen({ match, onBack }: ChatScreenProps) {
     <div className="h-full w-full flex flex-col overflow-hidden">
       {/* Шапка переписки: кнопка назад к списку + кто это */}
       <div className="flex-shrink-0 flex items-center gap-3 px-4 pt-3 pb-3 border-b border-fly-hairline">
-        <button onClick={onBack} className="w-8 h-8 flex items-center justify-center text-fly-ink flex-shrink-0">
+        {/* w-11 h-11 (44px) - минимальный удобный размер кнопки под палец на
+            телефоне (стандарт Apple/Android), а не только под курсор мыши -
+            сама иконка стрелки при этом того же размера, просто больше места
+            вокруг неё для нажатия. */}
+        <button
+          onClick={onBack}
+          className="w-11 h-11 -ml-1.5 flex items-center justify-center text-fly-ink flex-shrink-0"
+        >
           <BackArrowIcon />
         </button>
         <div className="w-9 h-9 rounded-full flex-shrink-0" style={{ backgroundColor: avatarColor }} />
@@ -143,10 +150,11 @@ export function ChatScreen({ match, onBack }: ChatScreenProps) {
           placeholder="Написать сообщение..."
           className="flex-1 bg-fly-fog rounded-fly-md px-4 py-2.5 text-sm text-fly-ink outline-none border border-transparent focus:border-fly-coral"
         />
+        {/* w-11 h-11 (44px) - минимальный удобный размер под палец (было 40px) */}
         <button
           onClick={handleSend}
           disabled={!draft.trim() || sending}
-          className="w-10 h-10 rounded-fly-md bg-fly-coral flex items-center justify-center flex-shrink-0 transition-opacity disabled:opacity-30"
+          className="w-11 h-11 rounded-fly-md bg-fly-coral flex items-center justify-center flex-shrink-0 transition-opacity disabled:opacity-30"
         >
           <SendIcon />
         </button>

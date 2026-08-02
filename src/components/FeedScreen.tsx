@@ -79,7 +79,8 @@ export function FeedScreen() {
           <div className="text-xl font-semibold">
             Fl<span className="text-fly-coral">y</span>
           </div>
-          <button className="w-[38px] h-[38px] rounded-fly-md bg-fly-fog flex items-center justify-center transition-colors hover:bg-fly-fog-strong">
+          {/* w-11 h-11 (44px) - минимальный удобный размер под палец (было 38px) */}
+          <button className="w-11 h-11 rounded-fly-md bg-fly-fog flex items-center justify-center transition-colors hover:bg-fly-fog-strong">
             <MenuIcon />
           </button>
         </div>
