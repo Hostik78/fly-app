@@ -61,7 +61,15 @@ export function CreateStatusScreen({ initialValues, submitLabel, onCancel, onSub
 
   return (
     <div className="h-full w-full bg-white flex flex-col overflow-hidden">
-      <div className="flex-1 overflow-y-auto overscroll-contain px-6 pt-12 pb-6 flex flex-col">
+      {/* Экран во весь экран, без общей рамки AppShell - safe-area отступы нужны
+          здесь сами по себе (см. подробное объяснение в AppShell.tsx). */}
+      <div
+        className="flex-1 overflow-y-auto overscroll-contain px-6 flex flex-col"
+        style={{
+          paddingTop: 'calc(3rem + env(safe-area-inset-top))',
+          paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))',
+        }}
+      >
         <div className="text-xl font-semibold mb-1">
           Fl<span className="text-fly-coral">y</span>
         </div>

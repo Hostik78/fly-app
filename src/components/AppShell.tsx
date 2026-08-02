@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { GridIcon, MessageIcon, AccountIcon } from './icons'
 import { useOnlinePresence } from '../lib/useOnlinePresence'
+import { AIRPORT } from '../data/airport'
 
 // currentUserId - id, который должен быть виден любому экрану внутри AppShell.
 // onlineUserIds - кто из ВСЕХ пользователей сейчас в сети (см. useOnlinePresence.ts) -
@@ -25,10 +26,18 @@ export function AppShell({ currentUserId }: AppShellProps) {
 
   return (
     <div className="h-full w-full bg-white flex flex-col overflow-hidden">
-      {/* Имитация строки статуса телефона: время и код аэропорта (для атмосферы) */}
-      <div className="flex-shrink-0 h-11 flex items-end justify-between px-5 pb-2 text-xs text-fly-gray">
-        <span>9:41</span>
-        <span>SVO</span>
+      {/* Настоящую строку статуса (время, заряд, сигнал) рисует сама операционная
+          система поверх этого места - мы её не имитируем (раньше тут было нарисовано
+          вручную "9:41", что на настоящем телефоне выглядело бы как чужое неправильное
+          время рядом с настоящим). env(safe-area-inset-top) - реальный отступ под
+          вырез/чёлку/Dynamic Island конкретно этого устройства, у каждого телефона
+          он свой - браузер сам подставляет нужное число, 0.5rem поверх него - просто
+          немного воздуха, чтобы код аэропорта не прилипал к самому вырезу. */}
+      <div
+        className="flex-shrink-0 flex items-center justify-end px-5 pb-2 text-xs font-semibold text-fly-gray"
+        style={{ paddingTop: 'calc(0.5rem + env(safe-area-inset-top))' }}
+      >
+        <span>{AIRPORT.code}</span>
       </div>
 
       {/* Сюда React Router подставляет текущий экран (Лента/Сообщения/Аккаунт).
@@ -44,8 +53,14 @@ export function AppShell({ currentUserId }: AppShellProps) {
       </div>
 
       {/* Нижняя навигация — не скроллится и не сжимается, всегда видна.
-          NavLink сам подсвечивает активную вкладку и переключает экран по клику. */}
-      <nav className="flex-shrink-0 flex justify-around items-center px-5 pt-4 pb-6 bg-white">
+          NavLink сам подсвечивает активную вкладку и переключает экран по клику.
+          env(safe-area-inset-bottom) - на iPhone без кнопки Home (X и новее) снизу
+          есть полоска-индикатор возврата на главный экран - без этого отступа
+          вкладки сидели бы слишком близко к ней. */}
+      <nav
+        className="flex-shrink-0 flex justify-around items-center px-5 pt-4 bg-white"
+        style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
+      >
         <NavLink to="/" end className={navLinkClass}>
           <GridIcon />
           Лента

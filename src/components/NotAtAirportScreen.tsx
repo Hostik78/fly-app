@@ -14,7 +14,13 @@ interface NotAtAirportScreenProps {
 
 export function NotAtAirportScreen({ status, distanceKm, onRetry }: NotAtAirportScreenProps) {
   return (
-    <div className="h-full w-full bg-white flex flex-col items-center justify-center gap-4 px-8 text-center">
+    <div
+      className="h-full w-full bg-white flex flex-col items-center justify-center gap-4 px-8 text-center"
+      style={{
+        paddingTop: 'calc(1rem + env(safe-area-inset-top))',
+        paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))',
+      }}
+    >
       <div className="text-2xl font-semibold">
         Fl<span className="text-fly-coral">y</span>
       </div>

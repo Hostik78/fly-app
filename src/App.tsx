@@ -60,9 +60,12 @@ function RequireAirport({ children }: { children: ReactNode }) {
 // Пока это просто состояние в памяти (сбрасывается при перезагрузке страницы) -
 // этого достаточно для первого шага, позже можно будет сохранять его понастоящему.
 //
-// DevicePreview снаружи — это НЕ часть самого приложения, а инструмент для удобной
-// разработки (рамка телефона). Когда дойдём до публикации для настоящих
-// пользователей, эту обёртку можно будет просто убрать.
+// DevicePreview - НЕ часть самого приложения, а инструмент для удобной разработки
+// (рамка телефона на экране компьютера). import.meta.env.DEV - true только при
+// локальной разработке (npm run dev), при настоящей сборке (npm run build - то,
+// что видят реальные люди на реальном телефоне) это false, и весь код рамки
+// (вместе с самим импортом DevicePreview) Vite вообще не включает в сборку -
+// человек на своём телефоне видит просто настоящий экран приложения, без рамки.
 function App() {
   const { session, loading } = useSession()
   const [hasProfile, setHasProfile] = useState(false)
@@ -131,61 +134,59 @@ function App() {
     setHasPosted(true)
   }
 
-  return (
-    <DevicePreview>
-      {overallLoading ? (
-        // Проверка входа занимает доли секунды - полноценный экран загрузки не нужен
-        <div className="h-full w-full bg-white" />
-      ) : !session ? (
-        <LoginScreen />
-      ) : !hasProfile ? (
-        <ProfileSetupScreen onSubmit={handleProfileSubmit} />
-      ) : (
-        /*
-          HashRouter, а не BrowserRouter: маршруты хранятся после знака "#" в адресе
-          (например, .../#/messages), а не в самом пути страницы. Это специально нужно,
-          когда сайт может открыться по любому, заранее неизвестному адресу (например,
-          опубликованный снимок на claude.ai) - роутер тогда не зависит от того,
-          по какому именно пути его открыли.
-        */
-        <HashRouter>
-          <Routes>
-            {/*
-              Если заметка уже опубликована, а человек всё равно зашёл на /new (например, по старой
-              ссылке) - сразу отправляем его в ленту. Это же условие само сработает и сразу после
-              публикации: hasPosted меняется -> App перерисовывается -> элемент маршрута пересчитывается.
-            */}
+  const content = overallLoading ? (
+    // Проверка входа занимает доли секунды - полноценный экран загрузки не нужен
+    <div className="h-full w-full bg-white" />
+  ) : !session ? (
+    <LoginScreen />
+  ) : !hasProfile ? (
+    <ProfileSetupScreen onSubmit={handleProfileSubmit} />
+  ) : (
+    /*
+      HashRouter, а не BrowserRouter: маршруты хранятся после знака "#" в адресе
+      (например, .../#/messages), а не в самом пути страницы. Это специально нужно,
+      когда сайт может открыться по любому, заранее неизвестному адресу (например,
+      опубликованный снимок на claude.ai) - роутер тогда не зависит от того,
+      по какому именно пути его открыли.
+    */
+    <HashRouter>
+      <Routes>
+        {/*
+          Если заметка уже опубликована, а человек всё равно зашёл на /new (например, по старой
+          ссылке) - сразу отправляем его в ленту. Это же условие само сработает и сразу после
+          публикации: hasPosted меняется -> App перерисовывается -> элемент маршрута пересчитывается.
+        */}
+        <Route
+          path="/new"
+          element={
+            hasPosted ? (
+              <Navigate to="/" replace />
+            ) : (
+              <RequireAirport>
+                <CreateStatusScreen onSubmit={handlePublish} />
+              </RequireAirport>
+            )
+          }
+        />
+        <Route element={<RequireStatus hasPosted={hasPosted} />}>
+          <Route element={<AppShell currentUserId={session.user.id} />}>
             <Route
-              path="/new"
+              index
               element={
-                hasPosted ? (
-                  <Navigate to="/" replace />
-                ) : (
-                  <RequireAirport>
-                    <CreateStatusScreen onSubmit={handlePublish} />
-                  </RequireAirport>
-                )
+                <RequireAirport>
+                  <FeedScreen />
+                </RequireAirport>
               }
             />
-            <Route element={<RequireStatus hasPosted={hasPosted} />}>
-              <Route element={<AppShell currentUserId={session.user.id} />}>
-                <Route
-                  index
-                  element={
-                    <RequireAirport>
-                      <FeedScreen />
-                    </RequireAirport>
-                  }
-                />
-                <Route path="messages" element={<MessagesScreen />} />
-                <Route path="account" element={<AccountScreen />} />
-              </Route>
-            </Route>
-          </Routes>
-        </HashRouter>
-      )}
-    </DevicePreview>
+            <Route path="messages" element={<MessagesScreen />} />
+            <Route path="account" element={<AccountScreen />} />
+          </Route>
+        </Route>
+      </Routes>
+    </HashRouter>
   )
+
+  return import.meta.env.DEV ? <DevicePreview>{content}</DevicePreview> : content
 }
 
 export default App

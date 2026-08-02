@@ -28,9 +28,15 @@ export default defineConfig({
       },
       includeAssets: ['favicon.svg', 'favicon.ico', 'apple-touch-icon-180x180.png'],
       manifest: {
-        name: 'FlyApp',
-        short_name: 'FlyApp',
-        description: 'FlyApp',
+        // name/short_name раньше были просто "FlyApp" - заготовка, которую никто не
+        // менял. short_name - то, что видно под значком на экране Домой (должно быть
+        // коротким), name - более полное имя (видно, например, при установке).
+        name: 'Fly',
+        short_name: 'Fly',
+        description: 'Знакомства и общение с людьми рядом с вами в аэропорту',
+        // По умолчанию плагин ставит "en" - весь текст в приложении на русском (см.
+        // lang="ru" в index.html), манифест должен совпадать с реальным языком.
+        lang: 'ru',
         // цвет фона при запуске (splash screen) и цвет строки состояния/адресной строки -
         // тёплый кремовый, как остальной новый дизайн (см. index.css, --color-fly-bg)
         theme_color: '#fff6f1',
@@ -38,6 +44,12 @@ export default defineConfig({
         // display: 'standalone' — открывается как отдельное приложение,
         // без адресной строки браузера, как обычное приложение с домашнего экрана
         display: 'standalone',
+        // Весь дизайн приложения - вертикальный (нижняя навигация, узкие карточки) -
+        // в горизонтальной ориентации вёрстка выглядела бы сломанной, поэтому
+        // фиксируем портретную ориентацию, а не полагаемся на случайный поворот.
+        orientation: 'portrait',
+        start_url: '/',
+        id: '/',
         icons: [
           { src: 'pwa-64x64.png', sizes: '64x64', type: 'image/png' },
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
