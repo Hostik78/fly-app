@@ -42,12 +42,29 @@ export function usePushNotifications(currentUserId: string | undefined): {
     let cancelled = false
     navigator.serviceWorker.ready.then(async (registration) => {
       const subscription = await registration.pushManager.getSubscription()
-      if (!cancelled) setSubscribed(subscription !== null)
+      if (cancelled) return
+      setSubscribed(subscription !== null)
+
+      // Браузер иногда сам, в фоне, обновляет endpoint подписки (например, из
+      // соображений безопасности) - без специального обработчика
+      // (pushsubscriptionchange) в самом service worker это осталось бы
+      // незамеченным до следующего ручного нажатия "Включить". Проще и надёжнее -
+      // молча сверять и досылать актуальный endpoint при каждом открытии
+      // приложения, раз оно и так уже открыто и вошло в аккаунт.
+      if (subscription && currentUserId) {
+        const json = subscription.toJSON()
+        await supabase
+          .from('push_subscriptions')
+          .upsert(
+            { user_id: currentUserId, endpoint: json.endpoint!, p256dh: json.keys!.p256dh, auth: json.keys!.auth },
+            { onConflict: 'endpoint' },
+          )
+      }
     })
     return () => {
       cancelled = true
     }
-  }, [supported])
+  }, [supported, currentUserId])
 
   async function subscribe() {
     if (!supported || !currentUserId) return
