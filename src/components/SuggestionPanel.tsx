@@ -90,7 +90,7 @@ export function SuggestionPanel({ category, quote, onSelect }: SuggestionPanelPr
               key={text}
               type="button"
               onClick={() => handlePick(text)}
-              className="text-left text-sm text-fly-ink bg-white rounded-fly-md px-3 py-2"
+              className="text-left text-sm text-fly-ink bg-fly-glass-solid rounded-fly-md px-3 py-2"
             >
               {text}
             </button>
@@ -101,7 +101,7 @@ export function SuggestionPanel({ category, quote, onSelect }: SuggestionPanelPr
               key={text}
               type="button"
               onClick={() => handlePick(text)}
-              className="text-left text-sm text-fly-ink bg-white rounded-fly-md px-3 py-2 flex items-start gap-1.5"
+              className="text-left text-sm text-fly-ink bg-fly-glass-solid rounded-fly-md px-3 py-2 flex items-start gap-1.5"
             >
               <span className="mt-0.5 flex-shrink-0">
                 <SparkleIcon />

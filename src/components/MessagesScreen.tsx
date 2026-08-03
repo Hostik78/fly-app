@@ -77,9 +77,14 @@ export function MessagesScreen() {
                 <div className="relative flex-shrink-0">
                   <div className="w-12 h-12 rounded-full" style={{ backgroundColor: avatarColor }} />
                   {/* Зелёный "маячок" в углу аватарки - виден, только пока человек в сети.
-                      border цветом фона экрана - создаёт эффект выреза, а не просто кружка поверх */}
+                      Раньше обводка была сплошным цветом фона экрана (эффект "выреза") -
+                      работало, пока фон был одноцветным. Теперь фон - градиент (см.
+                      index.css), точного совпадения цвета уже не существует, поэтому
+                      обводка - полупрозрачный тон фона (box-shadow, не border): он
+                      достаточно близок к любому месту градиента, а не подогнан под
+                      один конкретный оттенок. */}
                   {isOnline && (
-                    <span className="absolute -right-0.5 -bottom-0.5 w-3.5 h-3.5 rounded-full bg-fly-online border-[2.5px] border-fly-bg" />
+                    <span className="absolute -right-0.5 -bottom-0.5 w-3.5 h-3.5 rounded-full bg-fly-online shadow-[0_0_0_2.5px_rgba(255,246,241,0.9)]" />
                   )}
                 </div>
                 <div className="min-w-0 flex-1">

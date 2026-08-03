@@ -61,7 +61,8 @@ export function ProfileCard({ profile, online = false, onLike }: ProfileCardProp
     <div className="relative bg-fly-glass backdrop-blur-fly-glass border border-fly-glass-border rounded-fly-glass shadow-[0_8px_24px_rgba(60,80,120,0.12)] pl-5 pr-4 py-4">
       {/* Верхняя строка: категория (+хобби, если есть) слева, кнопка-меню справа.
           Заливка ярлычка - сплошной цвет по полу (не светлый оттенок с цветным текстом,
-          как было раньше) - это и есть "живой", более смелый язык этого направления. */}
+          как было раньше) - общая деталь, не привязанная к конкретному направлению
+          дизайна (см. более общий комментарий выше у самого компонента). */}
       <div className="flex items-center justify-between gap-2 mb-2.5">
         <span
           className="text-[10.5px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap text-white"
