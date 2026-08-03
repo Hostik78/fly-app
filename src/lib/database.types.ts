@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       likes: {
@@ -53,21 +78,27 @@ export type Database = {
       messages: {
         Row: {
           created_at: string
+          delivered_at: string | null
           id: string
+          read_at: string | null
           recipient_id: string
           sender_id: string
           text: string
         }
         Insert: {
           created_at?: string
+          delivered_at?: string | null
           id?: string
+          read_at?: string | null
           recipient_id: string
           sender_id: string
           text: string
         }
         Update: {
           created_at?: string
+          delivered_at?: string | null
           id?: string
+          read_at?: string | null
           recipient_id?: string
           sender_id?: string
           text?: string
@@ -108,6 +139,7 @@ export type Database = {
           gender: string | null
           height: number | null
           languages: string | null
+          last_seen_at: string | null
           user_id: string
         }
         Insert: {
@@ -116,6 +148,7 @@ export type Database = {
           gender?: string | null
           height?: number | null
           languages?: string | null
+          last_seen_at?: string | null
           user_id: string
         }
         Update: {
@@ -124,6 +157,7 @@ export type Database = {
           gender?: string | null
           height?: number | null
           languages?: string | null
+          last_seen_at?: string | null
           user_id?: string
         }
         Relationships: []
@@ -289,6 +323,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

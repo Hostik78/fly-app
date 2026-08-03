@@ -40,6 +40,15 @@ export function HeartIcon({ filled }: { filled: boolean }) {
   )
 }
 
+// Иконка "крестик" — кнопка закрытия всплывающей карточки анкеты (ProfileDetailSheet)
+export function CloseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className="w-4 h-4 stroke-current">
+      <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 export function BackArrowIcon() {
   // Иконка "стрелка влево" — кнопка "назад" на экране переписки
   return (

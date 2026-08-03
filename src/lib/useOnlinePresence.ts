@@ -15,6 +15,12 @@ import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
 
 const PRESENCE_CHANNEL = 'online-users'
+// Как часто записывать "я ещё тут" в свою анкету (last_seen_at) - раз в минуту,
+// пока хук примонтирован. Не пытаемся поймать момент отключения (закрытие
+// вкладки не гарантирует, что сетевой запрос успеет уйти) - вместо этого
+// просто "пинг по таймеру": в любой момент last_seen_at отстаёт от реальности
+// максимум на этот интервал, этого достаточно для фразы "был в сети N назад".
+const LAST_SEEN_HEARTBEAT_MS = 60 * 1000
 
 export function useOnlinePresence(currentUserId: string): Set<string> {
   const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set())
@@ -36,7 +42,14 @@ export function useOnlinePresence(currentUserId: string): Set<string> {
       }
     })
 
+    function pingLastSeen() {
+      void supabase.from('profiles').update({ last_seen_at: new Date().toISOString() }).eq('user_id', currentUserId)
+    }
+    pingLastSeen()
+    const heartbeat = setInterval(pingLastSeen, LAST_SEEN_HEARTBEAT_MS)
+
     return () => {
+      clearInterval(heartbeat)
       supabase.removeChannel(channel)
     }
   }, [currentUserId])

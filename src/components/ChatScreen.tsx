@@ -6,12 +6,23 @@ import { getAgeWord } from '../lib/pluralize'
 import { useConversation, type ChatMessage } from '../lib/useConversation'
 import { useTypingChannel } from '../lib/useTypingChannel'
 import { getGenderColor } from '../lib/genderColor'
+import { formatLastSeen } from '../lib/relativeTime'
 import type { AppOutletContext } from './AppShell'
 import { BackArrowIcon, SendIcon, TypingDots } from './icons'
+import { ProfileDetailSheet } from './ProfileDetailSheet'
 
 interface ChatScreenProps {
   match: Profile
   onBack: () => void
+}
+
+// Статус своего сообщения под пузырём - только на message.from === 'me' (см.
+// вызов ниже). "Доставлено"/"Просмотрено" заполняются в useConversation.ts -
+// см. её комментарий про то, что именно тут значит "доставлено" на веб-сайте.
+function messageStatusLabel(message: ChatMessage): string {
+  if (message.readAt) return 'Просмотрено'
+  if (message.deliveredAt) return 'Доставлено'
+  return 'Отправлено'
 }
 
 // Экран переписки с одним конкретным совпадением. Это не отдельный маршрут,
@@ -25,6 +36,7 @@ export function ChatScreen({ match, onBack }: ChatScreenProps) {
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showProfile, setShowProfile] = useState(false)
 
   const avatarColor = getGenderColor(match.gender)
   const isOnline = onlineUserIds.has(match.id)
@@ -73,39 +85,57 @@ export function ChatScreen({ match, onBack }: ChatScreenProps) {
         >
           <BackArrowIcon />
         </button>
-        <div className="w-9 h-9 rounded-full flex-shrink-0" style={{ backgroundColor: avatarColor }} />
-        <div className="min-w-0">
-          <div className="text-sm font-semibold text-fly-ink truncate">
-            {match.age !== undefined && `${match.age} ${getAgeWord(match.age)}`}
-            {match.age !== undefined && match.height !== undefined && ', '}
-            {match.height !== undefined && `${match.height} см`}
-          </div>
-          {/* Пока собеседник печатает - показываем это вместо обычного "В сети"/"Не в
-              сети" (более сиюминутная информация важнее общего статуса), само
-              вернётся обратно через несколько секунд без новых нажатий (см.
-              TYPING_CLEAR_MS в typingChannel.ts) */}
-          {theyAreTyping ? (
-            <div className="text-xs font-semibold text-fly-accent flex items-center gap-1.5">
-              <TypingDots /> печатает…
+        {/* Аватар + имя - кликабельны, открывают полную анкету поверх чата
+            (см. ProfileDetailSheet) - "освежить в памяти, кто это". */}
+        <button onClick={() => setShowProfile(true)} className="flex items-center gap-3 min-w-0 flex-1 text-left">
+          <div className="w-9 h-9 rounded-full flex-shrink-0" style={{ backgroundColor: avatarColor }} />
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-fly-ink truncate">
+              {match.age !== undefined && `${match.age} ${getAgeWord(match.age)}`}
+              {match.age !== undefined && match.height !== undefined && ', '}
+              {match.height !== undefined && `${match.height} см`}
             </div>
-          ) : (
-            <div className="text-xs text-fly-gray">{isOnline ? 'В сети' : 'Не в сети'}</div>
-          )}
-        </div>
+            {/* Пока собеседник печатает - показываем это вместо обычного статуса
+                (более сиюминутная информация важнее), само вернётся обратно
+                через несколько секунд без новых нажатий (см. TYPING_CLEAR_MS
+                в typingChannel.ts). Иначе - "Онлайн" прямо сейчас, или "Был(а)
+                в сети N назад" (см. relativeTime.ts) вместо старого статичного
+                "Не в сети" - last_seen_at может отсутствовать (человек ни разу
+                не заходил после того, как это поле завели) - тогда так и
+                остаётся просто "Не в сети". */}
+            {theyAreTyping ? (
+              <div className="text-xs font-semibold text-fly-accent flex items-center gap-1.5">
+                <TypingDots /> печатает…
+              </div>
+            ) : isOnline ? (
+              <div className="text-xs text-fly-gray flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-fly-online" />
+                Онлайн
+              </div>
+            ) : (
+              <div className="text-xs text-fly-gray">
+                {match.lastSeenAt ? formatLastSeen(match.lastSeenAt, match.gender) : 'Не в сети'}
+              </div>
+            )}
+          </div>
+        </button>
       </div>
 
       {/* Лента сообщений: прокручивается независимо от шапки и поля ввода */}
       <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 flex flex-col gap-2.5">
         {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`max-w-[75%] px-3.5 py-2.5 rounded-fly-md text-sm leading-relaxed ${
-              message.from === 'me'
-                ? 'self-end bg-fly-accent text-white'
-                : 'self-start bg-fly-fog text-fly-ink'
-            }`}
-          >
-            {message.text}
+          <div key={message.id} className={`flex flex-col ${message.from === 'me' ? 'items-end' : 'items-start'}`}>
+            <div
+              className={`max-w-[75%] px-3.5 py-2.5 rounded-fly-md text-sm leading-relaxed ${
+                message.from === 'me' ? 'bg-fly-accent text-white' : 'bg-fly-fog text-fly-ink'
+              }`}
+            >
+              {message.text}
+            </div>
+            {/* Статус - только на своих сообщениях, входящим свой статус не показываем */}
+            {message.from === 'me' && (
+              <span className="text-[11px] text-fly-gray mt-1 mr-1">{messageStatusLabel(message)}</span>
+            )}
           </div>
         ))}
 
@@ -159,6 +189,8 @@ export function ChatScreen({ match, onBack }: ChatScreenProps) {
           <SendIcon />
         </button>
       </div>
+
+      {showProfile && <ProfileDetailSheet profile={match} online={isOnline} onClose={() => setShowProfile(false)} />}
     </div>
   )
 }

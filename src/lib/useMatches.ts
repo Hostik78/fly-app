@@ -43,7 +43,7 @@ export function useMatches(currentUserId: string | undefined): { matches: Profil
 
       const [{ data: posts }, { data: profileRows }] = await Promise.all([
         supabase.from('posts').select('user_id, quote, category, hobby, created_at').in('user_id', matchUserIds),
-        supabase.from('profiles').select('user_id, gender, age, height, languages').in('user_id', matchUserIds),
+        supabase.from('profiles').select('user_id, gender, age, height, languages, last_seen_at').in('user_id', matchUserIds),
       ])
 
       const infoByUserId = new Map((profileRows ?? []).map((row) => [row.user_id, row]))
@@ -59,6 +59,7 @@ export function useMatches(currentUserId: string | undefined): { matches: Profil
           age: info?.age ?? undefined,
           height: info?.height ?? undefined,
           languages: info?.languages ?? undefined,
+          lastSeenAt: info?.last_seen_at ?? undefined,
           likedByMe: true, // совпадение возможно только если лайкнули друг друга
         }
       })
