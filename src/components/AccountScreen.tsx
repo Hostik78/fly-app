@@ -1,9 +1,7 @@
-// Экран "Аккаунт".
-//
-// Рабочие пункты - "Выйти", "Редактировать анкету", "Изменить заметку", "Кто меня
-// лайкнул" (см. useLikedByCount) и "Уведомления" (см. usePushNotifications) - все
-// подключены к настоящему бэкенду. Декоративный пока только один пункт - "Помощь"
-// (без действия по клику, ждёт содержимого).
+// Экран "Аккаунт" - все пункты подключены к настоящему бэкенду или ведут на
+// настоящий экран: "Выйти", "Редактировать анкету", "Изменить заметку", "Кто
+// меня лайкнул" (см. useLikedByCount), "Уведомления" (см. usePushNotifications),
+// "Помощь" (см. HelpScreen.tsx).
 import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -12,6 +10,7 @@ import { useLikedByCount } from '../lib/useLikedByCount'
 import { usePushNotifications } from '../lib/usePushNotifications'
 import { ProfileSetupScreen } from './ProfileSetupScreen'
 import { CreateStatusScreen } from './CreateStatusScreen'
+import { HelpScreen } from './HelpScreen'
 import type { AppOutletContext } from './AppShell'
 import type { ProfileCategory } from '../data/profiles'
 import type { HobbyId } from '../data/hobbies'
@@ -37,6 +36,7 @@ export function AccountScreen() {
   const [loadingProfile, setLoadingProfile] = useState(false)
   const [post, setPost] = useState<PostRow | null>(null)
   const [loadingPost, setLoadingPost] = useState(false)
+  const [showHelp, setShowHelp] = useState(false)
 
   function handleSignOut() {
     void supabase.auth.signOut()
@@ -114,6 +114,10 @@ export function AccountScreen() {
         onSubmit={handleUpdatePost}
       />
     )
+  }
+
+  if (showHelp) {
+    return <HelpScreen onBack={() => setShowHelp(false)} />
   }
 
   return (
@@ -199,12 +203,13 @@ export function AccountScreen() {
             <p className="text-xs text-fly-gray px-1">{pushNotifications.error}</p>
           )}
 
-          {/* Остальные пункты - пока декоративные, без действия по клику */}
-          {['Помощь'].map((item) => (
-            <div key={item} className="px-4 py-3 rounded-fly-md bg-fly-glass backdrop-blur-fly-glass border border-fly-glass-border text-sm text-fly-ink">
-              {item}
-            </div>
-          ))}
+          <button
+            type="button"
+            onClick={() => setShowHelp(true)}
+            className="px-4 py-3 rounded-fly-md bg-fly-glass backdrop-blur-fly-glass border border-fly-glass-border text-sm text-fly-ink text-left"
+          >
+            Помощь
+          </button>
 
           <button
             type="button"
