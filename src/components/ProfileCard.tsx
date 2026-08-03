@@ -25,13 +25,19 @@ interface ProfileCardProps {
   // если не получилось (нет сети), кнопка визуально откатывается обратно (см. ниже).
   // Не передана - кнопки лайка вообще нет (так для карточек в "Сообщениях").
   onLike?: (profile: Profile) => Promise<void>
+  // "Скрыть анкету" - меню "⋯" в углу карточки. Не передана - "⋯" рисуется как
+  // раньше, просто иконкой без действия (так в ProfileDetailSheet.tsx: скрывать
+  // из ленты уже совпавшего с тобой человека не имеет смысла).
+  onHide?: (profile: Profile) => Promise<void>
 }
 
-export function ProfileCard({ profile, online = false, onLike }: ProfileCardProps) {
+export function ProfileCard({ profile, online = false, onLike, onHide }: ProfileCardProps) {
   // liked - отметил ли пользователь эту анкету лайком. Берём из уже сохранённого
   // состояния (profile.likedByMe), а не всегда "нет" - иначе при повторном заходе
   // в ленту можно было бы по ошибке попробовать лайкнуть того же человека ещё раз.
   const [liked, setLiked] = useState(profile.likedByMe)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [hiding, setHiding] = useState(false)
 
   // Цвет полоски слева зависит от пола. Пол необязательный - если не указан,
   // нейтральный серый вместо тёплого/холодного цвета (не выдумываем).
@@ -57,6 +63,20 @@ export function ProfileCard({ profile, online = false, onLike }: ProfileCardProp
     }
   }
 
+  async function handleHideClick() {
+    if (!onHide || hiding) return
+    setHiding(true)
+    try {
+      await onHide(profile)
+      // Успех - карточка обычно тут же исчезает из списка у родителя
+      // (см. hideProfile в useFeedProfiles.ts), сам компонент размонтируется -
+      // закрывать меню/сбрасывать hiding отдельно не нужно.
+    } catch {
+      setHiding(false)
+      setMenuOpen(false)
+    }
+  }
+
   return (
     <div className="relative bg-fly-glass backdrop-blur-fly-glass border border-fly-glass-border rounded-fly-glass shadow-[0_8px_24px_rgba(60,80,120,0.12)] pl-5 pr-4 py-4">
       {/* Верхняя строка: категория (+хобби, если есть) слева, кнопка-меню справа.
@@ -72,9 +92,34 @@ export function ProfileCard({ profile, online = false, onLike }: ProfileCardProp
           {categoryLabel}
           {hobbyLabel ? ` · ${hobbyLabel}` : ''}
         </span>
-        <div className="w-6 h-6 flex items-center justify-center text-fly-gray flex-shrink-0">
-          <DotsIcon />
-        </div>
+        {/* "⋯" - раньше была просто нарисованной иконкой без действия по клику
+            (мёртвая кнопка). Теперь, если передан onHide (см. пропс выше) -
+            настоящая кнопка с меню из одного пункта "Скрыть анкету". */}
+        {onHide ? (
+          <div className="relative flex-shrink-0">
+            <button
+              onClick={() => setMenuOpen((open) => !open)}
+              className="w-8 h-8 -mr-1 flex items-center justify-center text-fly-gray"
+            >
+              <DotsIcon />
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-9 z-10 bg-fly-glass-solid backdrop-blur-fly-glass border border-fly-glass-border rounded-fly-md shadow-[0_8px_24px_rgba(60,80,120,0.18)] overflow-hidden">
+                <button
+                  onClick={handleHideClick}
+                  disabled={hiding}
+                  className="text-left text-sm text-fly-ink px-4 py-2.5 whitespace-nowrap hover:bg-fly-fog transition-colors disabled:opacity-50"
+                >
+                  {hiding ? 'Скрываем…' : 'Скрыть анкету'}
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="w-6 h-6 flex items-center justify-center text-fly-gray flex-shrink-0">
+            <DotsIcon />
+          </div>
+        )}
       </div>
 
       {/* Фраза анкеты - крупный жирный заголовок, а не мелкий обычный текст */}

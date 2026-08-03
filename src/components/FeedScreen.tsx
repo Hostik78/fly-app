@@ -4,7 +4,6 @@ import type { Profile, ProfileCategory } from '../data/profiles'
 import { categories } from '../data/categories'
 import { hobbies, type HobbyId } from '../data/hobbies'
 import { ProfileCard } from './ProfileCard'
-import { MenuIcon } from './icons'
 import type { AppOutletContext } from './AppShell'
 import { useFeedProfiles } from '../lib/useFeedProfiles'
 import { supabase } from '../lib/supabase'
@@ -34,7 +33,7 @@ export function FeedScreen() {
   // currentUserId пришёл из AppShell через контекст маршрута - нужен, чтобы запросить
   // ленту без своей же собственной публикации.
   const { currentUserId, onlineUserIds } = useOutletContext<AppOutletContext>()
-  const { profiles, loading, markLiked } = useFeedProfiles(currentUserId)
+  const { profiles, loading, markLiked, hideProfile } = useFeedProfiles(currentUserId)
 
   // Сохраняет лайк в базу. ProfileCard сам показывает "лайкнуто" сразу (оптимистично)
   // и откатывает обратно, если это не получилось - здесь сам поход в базу и обновление
@@ -45,6 +44,12 @@ export function FeedScreen() {
     const { error } = await supabase.from('likes').insert({ liker_id: currentUserId, liked_id: profile.id })
     if (error) throw error
     markLiked(profile.id)
+  }
+
+  // "Скрыть анкету" - кнопка "⋯" на карточке (см. ProfileCard.tsx). Сам поход в
+  // базу и удаление из списка - внутри hideProfile (useFeedProfiles.ts).
+  async function handleHide(profile: Profile) {
+    await hideProfile(profile.id)
   }
 
   // Запоминаем, какой фильтр сейчас выбран. По умолчанию — "Все".
@@ -74,15 +79,14 @@ export function FeedScreen() {
 
       {/* Верхний блок (шапка, фильтры) не скроллится и не сжимается - flex-shrink-0 */}
       <div className="flex-shrink-0">
-        {/* Шапка: название приложения слева, кнопка меню справа */}
-        <div className="flex items-center justify-between px-5 pt-3">
+        {/* Шапка: только название приложения - раньше тут же была кнопка
+            "меню" без какого-либо действия по клику и без экрана, который
+            открывался бы (мёртвая кнопка). Всё, что могло бы быть за ней
+            (аккаунт, выход), уже есть в нижней навигации - вкладка "Аккаунт". */}
+        <div className="px-5 pt-3">
           <div className="text-xl font-semibold">
             Fl<span className="text-fly-accent">y</span>
           </div>
-          {/* w-11 h-11 (44px) - минимальный удобный размер под палец (было 38px) */}
-          <button className="w-11 h-11 rounded-fly-md bg-fly-fog flex items-center justify-center transition-colors hover:bg-fly-fog-strong">
-            <MenuIcon />
-          </button>
         </div>
 
         {/* Фильтры ленты в виде круглых "таблеток". Фильтров много, поэтому строка
@@ -147,6 +151,7 @@ export function FeedScreen() {
                 profile={profile}
                 online={onlineUserIds.has(profile.id)}
                 onLike={handleLike}
+                onHide={handleHide}
               />
             ))}
 

@@ -19,7 +19,12 @@ const FEED_LIMIT = 50
 
 export function useFeedProfiles(
   currentUserId: string | undefined,
-): { profiles: Profile[]; loading: boolean; markLiked: (userId: string) => void } {
+): {
+  profiles: Profile[]
+  loading: boolean
+  markLiked: (userId: string) => void
+  hideProfile: (userId: string) => Promise<void>
+} {
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -35,7 +40,7 @@ export function useFeedProfiles(
     setLoading(true)
 
     async function load() {
-      const [{ data: posts }, { data: myLikes }] = await Promise.all([
+      const [{ data: posts }, { data: myLikes }, { data: hidden }] = await Promise.all([
         supabase
           .from('posts')
           .select('user_id, quote, category, hobby, created_at')
@@ -43,10 +48,16 @@ export function useFeedProfiles(
           .order('created_at', { ascending: false })
           .limit(FEED_LIMIT),
         supabase.from('likes').select('liked_id').eq('liker_id', userId),
+        // Скрытые мной анкеты (кнопка "⋯" на карточке, см. hideProfile ниже) -
+        // не должны попадать обратно в ленту даже после перезахода на экран.
+        supabase.from('hidden_profiles').select('hidden_id').eq('hider_id', userId),
       ])
       const likedIds = new Set((myLikes ?? []).map((row) => row.liked_id))
+      const hiddenIds = new Set((hidden ?? []).map((row) => row.hidden_id))
 
-      const userIds = (posts ?? []).map((post) => post.user_id)
+      const userIds = (posts ?? [])
+        .filter((post) => !hiddenIds.has(post.user_id))
+        .map((post) => post.user_id)
       const { data: profileRows } =
         userIds.length > 0
           ? await supabase.from('profiles').select('user_id, gender, age, height, languages').in('user_id', userIds)
@@ -55,21 +66,23 @@ export function useFeedProfiles(
       const infoByUserId = new Map((profileRows ?? []).map((row) => [row.user_id, row]))
       const now = Date.now()
 
-      const merged: Profile[] = (posts ?? []).map((post) => {
-        const info = infoByUserId.get(post.user_id)
-        return {
-          id: post.user_id,
-          gender: (info?.gender ?? undefined) as Profile['gender'],
-          category: post.category as ProfileCategory,
-          hobby: (post.hobby ?? undefined) as HobbyId | undefined,
-          isNew: now - new Date(post.created_at).getTime() < NEW_THRESHOLD_MS,
-          quote: post.quote,
-          age: info?.age ?? undefined,
-          height: info?.height ?? undefined,
-          languages: info?.languages ?? undefined,
-          likedByMe: likedIds.has(post.user_id),
-        }
-      })
+      const merged: Profile[] = (posts ?? [])
+        .filter((post) => !hiddenIds.has(post.user_id))
+        .map((post) => {
+          const info = infoByUserId.get(post.user_id)
+          return {
+            id: post.user_id,
+            gender: (info?.gender ?? undefined) as Profile['gender'],
+            category: post.category as ProfileCategory,
+            hobby: (post.hobby ?? undefined) as HobbyId | undefined,
+            isNew: now - new Date(post.created_at).getTime() < NEW_THRESHOLD_MS,
+            quote: post.quote,
+            age: info?.age ?? undefined,
+            height: info?.height ?? undefined,
+            languages: info?.languages ?? undefined,
+            likedByMe: likedIds.has(post.user_id),
+          }
+        })
 
       if (!cancelled) {
         setProfiles(merged)
@@ -94,5 +107,15 @@ export function useFeedProfiles(
     setProfiles((current) => current.map((profile) => (profile.id === userId ? { ...profile, likedByMe: true } : profile)))
   }
 
-  return { profiles, loading, markLiked }
+  // "Скрыть анкету" - кнопка "⋯" на карточке (см. ProfileCard.tsx). Сохраняет
+  // в базу (чтобы человек не вернулся в ленту после перезахода) и сразу же
+  // убирает карточку с экрана - не ждём следующей перезагрузки ленты.
+  async function hideProfile(userId: string) {
+    if (!currentUserId) return
+    const { error } = await supabase.from('hidden_profiles').insert({ hider_id: currentUserId, hidden_id: userId })
+    if (error) throw error
+    setProfiles((current) => current.filter((profile) => profile.id !== userId))
+  }
+
+  return { profiles, loading, markLiked, hideProfile }
 }

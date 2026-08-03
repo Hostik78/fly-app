@@ -2,15 +2,6 @@
 // SVG — это картинка, нарисованная линиями и фигурами прямо в коде, а не файл на диске.
 // Так проще менять цвет иконки через Tailwind-классы (stroke-.../fill-...).
 
-export function MenuIcon() {
-  // Иконка "три горизонтальные линии" — кнопка меню в шапке
-  return (
-    <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className="w-4 h-4 stroke-fly-ink">
-      <path d="M4 6h16M8 12h12M12 18h8" strokeLinecap="round" />
-    </svg>
-  )
-}
-
 export function DotsIcon() {
   // Иконка "три точки" — кнопка дополнительных действий на карточке анкеты
   return (

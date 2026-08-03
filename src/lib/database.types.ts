@@ -39,6 +39,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      hidden_profiles: {
+        Row: {
+          created_at: string
+          hidden_id: string
+          hider_id: string
+        }
+        Insert: {
+          created_at?: string
+          hidden_id: string
+          hider_id: string
+        }
+        Update: {
+          created_at?: string
+          hidden_id?: string
+          hider_id?: string
+        }
+        Relationships: []
+      }
       likes: {
         Row: {
           created_at: string
