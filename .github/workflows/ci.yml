@@ -1,0 +1,24 @@
+# Автоматическая проверка при каждом push/PR - раньше проверка типов/тестов/
+# сборки делалась только руками перед выкладкой, здесь ничего не следило за
+# этим само по себе. Специально НЕ включает деплой (это отдельно делает
+# интеграция Vercel с GitHub) - только проверка, что код не сломан.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test
+      - run: npm run build
