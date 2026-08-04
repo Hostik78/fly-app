@@ -91,3 +91,12 @@ TwaManifest.fromWebManifest('https://fly-app-eight.vercel.app/manifest.webmanife
   проверить, какая версия реально нужна, командой `grep BUILD_TOOLS_VERSION
   node_modules/@bubblewrap/core/dist/lib/androidSdk/AndroidSdkTools.js` и
   доустановить её через `sdkmanager`.
+- Родная заставка Android (SPLASH_IMAGE_DRAWABLE/SPLASH_SCREEN_BACKGROUND_COLOR/
+  SPLASH_SCREEN_FADE_OUT_DURATION в AndroidManifest.xml) намеренно убрана
+  (2026-08-05) - у сайта уже есть своя заставка с анимацией волн
+  (см. src/components/LoadingScreen.tsx), и обе подряд выглядели как два
+  разных экрана. **Если запускать `bubblewrap build` после пересборки
+  `twa-manifest.json` из webmanifest** (см. команду выше) - Bubblewrap
+  регенерирует AndroidManifest.xml с нуля и молча вернёт эти три строки
+  обратно. После такой пересборки нужно снова вручную убрать их из
+  AndroidManifest.xml (внутри тега `<activity>` с `android:name=".LauncherActivity"`).
