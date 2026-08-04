@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, lazy, type ReactNode } from 'react'
 import { HashRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { FeedScreen } from './components/FeedScreen'
 import { MessagesScreen } from './components/MessagesScreen'
@@ -14,13 +14,6 @@ import { useAirportPresence } from './lib/useAirportPresence'
 import { supabase } from './lib/supabase'
 import type { ProfileCategory } from './data/profiles'
 import type { HobbyId } from './data/hobbies'
-
-// Минимальное время показа экрана загрузки (см. showLoadingScreen ниже) - в мс.
-// 1500, не меньше - на реальном мобильном интернете (не как на компьютере
-// разработчика, где всё грузится с диска почти мгновенно) видео из интернета
-// конкурирует за скорость соединения с остальными файлами сайта, и запас
-// поменьше не всегда гарантированно этого хватало.
-const MIN_LOADING_SCREEN_MS = 1500
 
 // lazy(...) - только AccountScreen: нужен не всем и не сразу (только по клику
 // на вкладку "Аккаунт"), поэтому его код браузер скачает отдельным кусочком,
@@ -119,21 +112,17 @@ function App() {
   // потом (уже войдя) анкету и публикацию разом.
   const overallLoading = loading || (!!session && accountLoading)
 
-  // Экран загрузки (см. LoadingScreen.tsx) должен продержаться хотя бы MIN_LOADING_SCREEN_MS -
-  // без этого он в большинстве случаев исчезал бы почти мгновенно (проверка входа обычно
-  // читается из уже сохранённых данных телефона, без обращения к серверу, за доли секунды),
-  // а само видео из интернета за это время физически не успевает скачаться и показать
-  // хотя бы один кадр - человек просто никогда не видел бы анимацию. Так же поступают
-  // обычные приложения - у них заставка тоже держится какое-то минимальное время, а не
-  // исчезает раньше, чем успела показаться. Если реальная загрузка медленнее этого времени
-  // (например, плохой интернет) - экран и так останется столько, сколько нужно по-настоящему,
-  // это лишь НИЖНЯЯ граница, а не искусственная задержка сверх реальной загрузки.
-  const [minLoadingScreenElapsed, setMinLoadingScreenElapsed] = useState(false)
-  useEffect(() => {
-    const timer = setTimeout(() => setMinLoadingScreenElapsed(true), MIN_LOADING_SCREEN_MS)
-    return () => clearTimeout(timer)
-  }, [])
-  const showLoadingScreen = overallLoading || !minLoadingScreenElapsed
+  // Экран загрузки (см. LoadingScreen.tsx) должен продержаться, пока не готовы ОБА условия:
+  // проверка входа (overallLoading) и само видео заставки реально не начало проигрываться
+  // (videoReady - сообщает LoadingScreen через onReady, без гадания "сколько секунд подождать
+  // на глаз"). Без второго условия видео в большинстве случаев не успевало бы показать ни
+  // кадра - проверка входа обычно читается из уже сохранённых данных телефона почти мгновенно,
+  // а видео из интернета столько времени физически не хватало бы, чтобы скачаться. Никакой
+  // фиксированной задержки сверх реальной готовности тут нет - как только оба условия и так
+  // выполнены, переход происходит сразу же.
+  const [videoReady, setVideoReady] = useState(false)
+  const handleVideoReady = useCallback(() => setVideoReady(true), [])
+  const showLoadingScreen = overallLoading || !videoReady
 
   async function handleProfileSubmit(
     gender: 'male' | 'female' | null,
@@ -159,7 +148,7 @@ function App() {
   }
 
   const content = showLoadingScreen ? (
-    <LoadingScreen />
+    <LoadingScreen onReady={handleVideoReady} />
   ) : !session ? (
     <LoginScreen />
   ) : !hasProfile ? (
