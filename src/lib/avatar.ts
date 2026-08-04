@@ -24,9 +24,14 @@ export function avatarPath(userId: string): string {
 // сетевого запроса (бакет публичный, см. миграцию) - "?v=" на конце нужен
 // только чтобы браузер не показал старую картинку из своего кеша по тому же
 // самому адресу сразу после того, как файл только что перезаписан.
+//
+// Сравнение именно с '' (а не просто "если cacheBustKey задан") - число 0
+// само по себе "ложное" значение в JS, и 0 - совершенно законная версия
+// (самый первый рендер), а не "версии нет". Проверка через обычное if(cacheBustKey)
+// в этом месте однажды уже пропускала "?v=" ровно на нулевой версии - см. LESSONS.md.
 export function getAvatarUrl(userId: string, cacheBustKey: string | number = ''): string {
   const { data } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(avatarPath(userId))
-  return cacheBustKey ? `${data.publicUrl}?v=${cacheBustKey}` : data.publicUrl
+  return cacheBustKey === '' ? data.publicUrl : `${data.publicUrl}?v=${cacheBustKey}`
 }
 
 // Уменьшает картинку до MAX_SIZE_PX по длинной стороне и пережимает в JPEG -

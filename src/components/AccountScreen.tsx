@@ -64,7 +64,11 @@ export function AccountScreen() {
       // "версии" в ссылке браузер показал бы старую картинку из своего кеша.
       setAvatarVersion((version) => version + 1)
     } catch {
-      setAvatarError('Не получилось загрузить фото. Проверьте интернет и попробуйте ещё раз.')
+      // Причина может быть и в сети, и в самом файле (например, формат, который
+      // браузер не смог прочитать, см. resizeImage в avatar.ts) - текст
+      // намеренно не называет конкретную причину, чтобы не отправлять человека
+      // не в ту сторону (не "проверьте интернет", если дело было в файле).
+      setAvatarError('Не получилось загрузить фото. Попробуйте другое изображение или ещё раз.')
     } finally {
       setUploadingAvatar(false)
     }
@@ -172,7 +176,7 @@ export function AccountScreen() {
               <img
                 src={getAvatarUrl(currentUserId, avatarVersion)}
                 onError={() => setAvatarBroken(true)}
-                alt=""
+                alt="Фото профиля"
                 className="w-full h-full object-cover"
               />
             )}
