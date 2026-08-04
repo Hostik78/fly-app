@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Profile } from '../data/profiles'
 import { getAgeWord } from '../lib/pluralize'
 import { categories } from '../data/categories'
@@ -38,6 +38,23 @@ export function ProfileCard({ profile, online = false, onLike, onHide }: Profile
   const [liked, setLiked] = useState(profile.likedByMe)
   const [menuOpen, setMenuOpen] = useState(false)
   const [hiding, setHiding] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // Закрыть меню "⋯" кликом мимо него - стандартное поведение выпадающих
+  // меню, слушатель висит только пока меню реально открыто.
+  useEffect(() => {
+    if (!menuOpen) return
+    // pointerdown, не mousedown - на телефоне (основная платформа приложения)
+    // это то же самое событие что для мыши, что для касания, без задержки/
+    // квирков синтетических mouse-событий после тапа.
+    function handleClickOutside(event: PointerEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+    document.addEventListener('pointerdown', handleClickOutside)
+    return () => document.removeEventListener('pointerdown', handleClickOutside)
+  }, [menuOpen])
 
   // Цвет полоски слева зависит от пола. Пол необязательный - если не указан,
   // нейтральный серый вместо тёплого/холодного цвета (не выдумываем).
@@ -96,7 +113,7 @@ export function ProfileCard({ profile, online = false, onLike, onHide }: Profile
             (мёртвая кнопка). Теперь, если передан onHide (см. пропс выше) -
             настоящая кнопка с меню из одного пункта "Скрыть анкету". */}
         {onHide ? (
-          <div className="relative flex-shrink-0">
+          <div ref={menuRef} className="relative flex-shrink-0">
             <button
               onClick={() => setMenuOpen((open) => !open)}
               className="w-8 h-8 -mr-1 flex items-center justify-center text-fly-gray"

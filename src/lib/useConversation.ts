@@ -13,7 +13,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from './supabase'
 import type { Database } from './database.types'
-import type { RealtimeChannel } from '@supabase/supabase-js'
 
 // Одно сообщение в переписке. from: 'them' - от собеседника, 'me' - от вас.
 // deliveredAt/readAt заполнены только у сообщений from: 'me' - у входящих
@@ -46,7 +45,6 @@ export function useConversation(
       return
     }
     let cancelled = false
-    let channel: RealtimeChannel | null = null
     setLoading(true)
 
     // Помечает delivered_at (и, если вкладка видна и в фокусе, read_at) для
@@ -68,13 +66,53 @@ export function useConversation(
       // Доставлено раньше, но прочитано только сейчас (вкладка была свёрнута,
       // когда сообщение пришло, теперь снова видна) - отдельным запросом, чтобы
       // не перезаписать уже настоящий delivered_at более новой меткой времени.
-      const deliveredButUnread = rows
-        .filter((row) => row.delivered_at && !row.read_at && !undelivered.includes(row.id))
-        .map((row) => row.id)
+      // undelivered и deliveredButUnread никогда не пересекаются (взаимоисключающие
+      // условия delivered_at/!delivered_at), доп. проверку на пересечение не пишем.
+      const deliveredButUnread = rows.filter((row) => row.delivered_at && !row.read_at).map((row) => row.id)
       if (isVisible && deliveredButUnread.length > 0) {
         await supabase.from('messages').update({ read_at: now }).in('id', deliveredButUnread)
       }
     }
+
+    // Подписываемся на канал СНАЧАЛА, до запроса истории - а не после (как было
+    // раньше). Между ответом на запрос истории и моментом, когда подписка на
+    // канал реально подтверждена (это не мгновенно - у Realtime свой handshake),
+    // есть окно: сообщение, отправленное собеседником именно тогда, раньше просто
+    // терялось - Supabase Realtime не досылает события, случившиеся до
+    // подтверждения подписки, и оно появилось бы только после повторного захода
+    // в чат (хотя в базе, конечно, сохранялось). Теперь подписка идёт первой:
+    // если что-то придёт живьём раньше ответа на историю, оно просто добавится
+    // в пока пустой messages, а когда история подгрузится - склеится с ней ниже
+    // (fetchedIds убирает дубли, если одно и то же сообщение всё же попало и в
+    // историю, и было поймано живьём).
+    const channel = supabase
+      .channel(`messages:${currentUserId}:${otherUserId}`)
+      .on<MessageRow>(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages', filter: `recipient_id=eq.${currentUserId}` },
+        ({ new: row }) => {
+          if (row.sender_id !== otherUserId) return
+          setMessages((current) =>
+            current.some((message) => message.id === row.id)
+              ? current
+              : [...current, { id: row.id, text: row.text, from: 'them', deliveredAt: row.delivered_at, readAt: row.read_at }],
+          )
+          void markReceived([row])
+        },
+      )
+      .on<MessageRow>(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'messages', filter: `sender_id=eq.${currentUserId}` },
+        ({ new: row }) => {
+          if (row.recipient_id !== otherUserId) return
+          setMessages((current) =>
+            current.map((message) =>
+              message.id === row.id ? { ...message, deliveredAt: row.delivered_at, readAt: row.read_at } : message,
+            ),
+          )
+        },
+      )
+      .subscribe()
 
     supabase
       .from('messages')
@@ -87,59 +125,28 @@ export function useConversation(
       .then(({ data }) => {
         if (cancelled) return
         const rows = data ?? []
-        setMessages(
-          rows.map((row) => ({
-            id: row.id,
-            text: row.text,
-            from: row.sender_id === currentUserId ? 'me' : 'them',
-            deliveredAt: row.delivered_at,
-            readAt: row.read_at,
-          })),
-        )
+        const fetchedIds = new Set(rows.map((row) => row.id))
+        setMessages((current) => {
+          // current тут - только то, что успело прилететь живьём ДО того, как
+          // пришёл ответ на историю (см. комментарий у channel выше) - история
+          // всегда идёт первой (она и есть более ранние сообщения), а то живое,
+          // чего в ней ещё нет, дописывается следом, без дублей по id.
+          const liveOnly = current.filter((message) => !fetchedIds.has(message.id))
+          return [
+            ...rows.map((row) => ({
+              id: row.id,
+              text: row.text,
+              from: (row.sender_id === currentUserId ? 'me' : 'them') as 'me' | 'them',
+              deliveredAt: row.delivered_at,
+              readAt: row.read_at,
+            })),
+            ...liveOnly,
+          ]
+        })
         setLoading(false)
 
         const theirRows = rows.filter((row) => row.sender_id === otherUserId)
         if (theirRows.length > 0) void markReceived(theirRows)
-
-        // Живое обновление - подписываемся только ТЕПЕРЬ, когда история уже точно
-        // на экране (не отдельным независимым useEffect, стартующим одновременно
-        // с запросом истории). Если бы подписка началась раньше и собеседник успел
-        // бы написать ровно в этот момент, более поздний ответ на запрос истории
-        // (отправленный ДО его сообщения) перезаписал бы весь список выше и стёр
-        // уже показанное живое сообщение, будто его не было - см. миграцию
-        // enable_realtime_messages.sql про то, почему это вообще приходит.
-        //
-        // Два отдельных .on() на одном канале: INSERT - новые чужие сообщения мне
-        // (как раньше), UPDATE - когда собеседник проставляет delivered/read на
-        // МОИХ отправленных сообщениях, чтобы статус на экране обновлялся сам,
-        // без перезахода.
-        channel = supabase
-          .channel(`messages:${currentUserId}:${otherUserId}`)
-          .on<MessageRow>(
-            'postgres_changes',
-            { event: 'INSERT', schema: 'public', table: 'messages', filter: `recipient_id=eq.${currentUserId}` },
-            ({ new: row }) => {
-              if (row.sender_id !== otherUserId) return
-              setMessages((current) => [
-                ...current,
-                { id: row.id, text: row.text, from: 'them', deliveredAt: row.delivered_at, readAt: row.read_at },
-              ])
-              void markReceived([row])
-            },
-          )
-          .on<MessageRow>(
-            'postgres_changes',
-            { event: 'UPDATE', schema: 'public', table: 'messages', filter: `sender_id=eq.${currentUserId}` },
-            ({ new: row }) => {
-              if (row.recipient_id !== otherUserId) return
-              setMessages((current) =>
-                current.map((message) =>
-                  message.id === row.id ? { ...message, deliveredAt: row.delivered_at, readAt: row.read_at } : message,
-                ),
-              )
-            },
-          )
-          .subscribe()
       })
 
     // Вкладка вернулась в фокус - у уже показанных чужих сообщений могло быть
@@ -156,7 +163,7 @@ export function useConversation(
     return () => {
       cancelled = true
       document.removeEventListener('visibilitychange', handleVisibilityChange)
-      if (channel) supabase.removeChannel(channel)
+      supabase.removeChannel(channel)
     }
   }, [currentUserId, otherUserId])
 
