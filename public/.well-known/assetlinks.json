@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.fly.twa",
+      "sha256_cert_fingerprints": [
+        "22:1E:BA:F6:74:C2:DF:10:D2:AE:6A:31:B5:BE:57:38:AD:B2:07:60:3B:E1:F2:3F:03:7D:71:98:A9:C3:5D:8E"
+      ]
+    }
+  }
+]
