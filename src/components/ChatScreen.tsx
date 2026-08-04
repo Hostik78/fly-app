@@ -5,10 +5,10 @@ import { getIcebreakers } from '../data/icebreakers'
 import { getAgeWord } from '../lib/pluralize'
 import { useConversation, type ChatMessage } from '../lib/useConversation'
 import { useTypingChannel } from '../lib/useTypingChannel'
-import { getGenderColor } from '../lib/genderColor'
 import { formatLastSeen } from '../lib/relativeTime'
 import type { AppOutletContext } from './AppShell'
 import { BackArrowIcon, SendIcon, TypingDots } from './icons'
+import { Avatar } from './Avatar'
 import { ProfileDetailSheet } from './ProfileDetailSheet'
 
 interface ChatScreenProps {
@@ -38,7 +38,6 @@ export function ChatScreen({ match, onBack }: ChatScreenProps) {
   const [error, setError] = useState<string | null>(null)
   const [showProfile, setShowProfile] = useState(false)
 
-  const avatarColor = getGenderColor(match.gender)
   const isOnline = onlineUserIds.has(match.id)
 
   // Пока не загрузили - список пуст (не мигаем заглушкой раньше времени). Если
@@ -88,7 +87,7 @@ export function ChatScreen({ match, onBack }: ChatScreenProps) {
         {/* Аватар + имя - кликабельны, открывают полную анкету поверх чата
             (см. ProfileDetailSheet) - "освежить в памяти, кто это". */}
         <button onClick={() => setShowProfile(true)} className="flex items-center gap-3 min-w-0 flex-1 text-left">
-          <div className="w-9 h-9 rounded-full flex-shrink-0" style={{ backgroundColor: avatarColor }} />
+          <Avatar userId={match.id} gender={match.gender} className="w-9 h-9 rounded-full flex-shrink-0" />
           <div className="min-w-0">
             <div className="text-sm font-semibold text-fly-ink truncate">
               {match.age !== undefined && `${match.age} ${getAgeWord(match.age)}`}

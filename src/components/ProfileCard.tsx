@@ -5,6 +5,7 @@ import { categories } from '../data/categories'
 import { hobbies } from '../data/hobbies'
 import { getGenderColor } from '../lib/genderColor'
 import { DotsIcon, HeartIcon } from './icons'
+import { Avatar } from './Avatar'
 
 // Компонент — это кусочек интерфейса, который можно переиспользовать.
 // Этот компонент рисует одну карточку анкеты в ленте.
@@ -96,19 +97,25 @@ export function ProfileCard({ profile, online = false, onLike, onHide }: Profile
 
   return (
     <div className="relative bg-fly-glass backdrop-blur-fly-glass border border-fly-glass-border rounded-fly-glass shadow-[0_8px_24px_rgba(60,80,120,0.12)] pl-5 pr-4 py-4">
-      {/* Верхняя строка: категория (+хобби, если есть) слева, кнопка-меню справа.
-          Заливка ярлычка - сплошной цвет по полу (не светлый оттенок с цветным текстом,
-          как было раньше) - общая деталь, не привязанная к конкретному направлению
-          дизайна (см. более общий комментарий выше у самого компонента). */}
+      {/* Верхняя строка: маленький кружок-фото (см. Avatar.tsx - настоящее фото,
+          если человек его загрузил в Аккаунте, иначе тот же цветной кружок по
+          полу, что был и раньше) + категория (+хобби, если есть) слева, кнопка-меню
+          справа. Заливка ярлычка - сплошной цвет по полу (не светлый оттенок с
+          цветным текстом, как было раньше) - общая деталь, не привязанная к
+          конкретному направлению дизайна (см. более общий комментарий выше у
+          самого компонента). */}
       <div className="flex items-center justify-between gap-2 mb-2.5">
-        <span
-          className="text-[10.5px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap text-white"
-          style={{ backgroundColor: stripeColor }}
-        >
-          {profile.isNew && 'New · '}
-          {categoryLabel}
-          {hobbyLabel ? ` · ${hobbyLabel}` : ''}
-        </span>
+        <div className="flex items-center gap-2 min-w-0">
+          <Avatar userId={profile.id} gender={profile.gender} className="w-8 h-8 rounded-full flex-shrink-0" />
+          <span
+            className="text-[10.5px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap text-white"
+            style={{ backgroundColor: stripeColor }}
+          >
+            {profile.isNew && 'New · '}
+            {categoryLabel}
+            {hobbyLabel ? ` · ${hobbyLabel}` : ''}
+          </span>
+        </div>
         {/* "⋯" - раньше была просто нарисованной иконкой без действия по клику
             (мёртвая кнопка). Теперь, если передан onHide (см. пропс выше) -
             настоящая кнопка с меню из одного пункта "Скрыть анкету". */}

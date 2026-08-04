@@ -1,11 +1,11 @@
 import { useState, lazy, Suspense } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { MessageIcon, TypingDots } from './icons'
+import { Avatar } from './Avatar'
 import { getAgeWord } from '../lib/pluralize'
 import type { AppOutletContext } from './AppShell'
 import type { Profile } from '../data/profiles'
 import { useMatches } from '../lib/useMatches'
-import { getGenderColor } from '../lib/genderColor'
 import { useTypingStatus } from '../lib/useTypingStatus'
 
 // ChatScreen открывается не сразу, а только по клику на конкретное совпадение -
@@ -65,7 +65,6 @@ export function MessagesScreen() {
         // Список совпадений - клик по любому открывает переписку (ChatScreen)
         <div className="flex-1 overflow-y-auto overscroll-contain">
           {matches.map((match) => {
-            const avatarColor = getGenderColor(match.gender)
             const isOnline = onlineUserIds.has(match.id)
             const isTyping = typingIds.has(match.id)
             return (
@@ -75,7 +74,7 @@ export function MessagesScreen() {
                 className="w-full flex items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-fly-fog"
               >
                 <div className="relative flex-shrink-0">
-                  <div className="w-12 h-12 rounded-full" style={{ backgroundColor: avatarColor }} />
+                  <Avatar userId={match.id} gender={match.gender} className="w-12 h-12 rounded-full" />
                   {/* Зелёный "маячок" в углу аватарки - виден, только пока человек в сети.
                       Раньше обводка была сплошным цветом фона экрана (эффект "выреза") -
                       работало, пока фон был одноцветным. Теперь фон - градиент (см.
