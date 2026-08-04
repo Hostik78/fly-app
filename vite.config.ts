@@ -24,7 +24,11 @@ export default defineConfig({
       filename: 'sw.ts',
       injectManifest: {
         // Иконки/шрифты уже закешированы через обычный manifest ниже - не дублируем.
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // jpg - только картинка-заглушка экрана загрузки (см. LoadingScreen.tsx,
+        // loading-screen-poster.jpg) - маленькая (около 14 КБ), не раздувает кеш,
+        // зато видна мгновенно (из уже сохранённого на телефоне) начиная со
+        // второго открытия, а не только с первого.
+        globPatterns: ['**/*.{js,css,html,svg,png,jpg,woff2}'],
       },
       includeAssets: ['logo-source.svg', 'favicon.ico', 'apple-touch-icon-180x180.png'],
       manifest: {
