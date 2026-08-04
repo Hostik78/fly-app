@@ -2,12 +2,13 @@
 // настоящий экран: "Выйти", "Редактировать анкету", "Изменить заметку", "Кто
 // меня лайкнул" (см. useLikedByCount), "Уведомления" (см. usePushNotifications),
 // "Помощь" (см. HelpScreen.tsx).
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { getLanguageCodesFromNames } from '../data/languages'
 import { useLikedByCount } from '../lib/useLikedByCount'
 import { usePushNotifications } from '../lib/usePushNotifications'
+import { getAvatarUrl, uploadAvatar } from '../lib/avatar'
 import { ProfileSetupScreen } from './ProfileSetupScreen'
 import { CreateStatusScreen } from './CreateStatusScreen'
 import { HelpScreen } from './HelpScreen'
@@ -37,9 +38,36 @@ export function AccountScreen() {
   const [post, setPost] = useState<PostRow | null>(null)
   const [loadingPost, setLoadingPost] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
+  // Фото профиля - показываем сразу, оптимистично (публичный бакет, см. avatar.ts) -
+  // если файла на самом деле нет, <img onError> сам переключит на градиент-заглушку,
+  // отдельно спрашивать базу "есть ли фото" не нужно.
+  const [avatarBroken, setAvatarBroken] = useState(false)
+  const [avatarVersion, setAvatarVersion] = useState(0)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [avatarError, setAvatarError] = useState<string | null>(null)
+  const avatarInputRef = useRef<HTMLInputElement>(null)
 
   function handleSignOut() {
     void supabase.auth.signOut()
+  }
+
+  async function handleAvatarChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = '' // тот же файл можно будет выбрать ещё раз подряд
+    if (!file || !currentUserId) return
+    setUploadingAvatar(true)
+    setAvatarError(null)
+    try {
+      await uploadAvatar(currentUserId, file)
+      setAvatarBroken(false)
+      // Файл лежит по тому же адресу, что и раньше (перезаписан) - без смены
+      // "версии" в ссылке браузер показал бы старую картинку из своего кеша.
+      setAvatarVersion((version) => version + 1)
+    } catch {
+      setAvatarError('Не получилось загрузить фото. Проверьте интернет и попробуйте ещё раз.')
+    } finally {
+      setUploadingAvatar(false)
+    }
   }
 
   async function startEditingProfile() {
@@ -127,10 +155,44 @@ export function AccountScreen() {
       </div>
 
       <div className="flex-1 overflow-y-auto overscroll-contain px-5 pt-4 pb-4">
-        {/* Заглушка вместо фото профиля */}
-        <div className="flex flex-col items-center gap-3 pb-6">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-fly-tint-accent to-fly-accent" />
-          <p className="text-sm text-fly-gray">Здесь будет ваша анкета</p>
+        {/* Фото профиля - кружок сам по себе кнопка (см. avatarInputRef): тап
+            открывает обычный выбор файла с телефона/компьютера. Пока настоящего
+            фото нет (или оно не загрузилось - avatarBroken) - градиент-заглушка,
+            как и было. */}
+        <div className="flex flex-col items-center gap-2 pb-6">
+          <button
+            type="button"
+            onClick={() => avatarInputRef.current?.click()}
+            disabled={uploadingAvatar}
+            className="relative w-20 h-20 rounded-full overflow-hidden transition-opacity disabled:opacity-60"
+          >
+            {avatarBroken || !currentUserId ? (
+              <div className="w-full h-full bg-gradient-to-br from-fly-tint-accent to-fly-accent" />
+            ) : (
+              <img
+                src={getAvatarUrl(currentUserId, avatarVersion)}
+                onError={() => setAvatarBroken(true)}
+                alt=""
+                className="w-full h-full object-cover"
+              />
+            )}
+            {uploadingAvatar && (
+              <div className="absolute inset-0 bg-black/30 flex items-center justify-center text-white text-xs font-semibold">
+                …
+              </div>
+            )}
+          </button>
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleAvatarChange}
+            className="hidden"
+          />
+          <p className="text-sm text-fly-gray">
+            {uploadingAvatar ? 'Загружаем фото…' : 'Нажмите на кружок, чтобы добавить фото'}
+          </p>
+          {avatarError && <p className="text-xs text-fly-gray text-center px-6">{avatarError}</p>}
         </div>
 
         <div className="flex flex-col gap-2">
