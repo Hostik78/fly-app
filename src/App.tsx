@@ -8,6 +8,7 @@ import { DevicePreview } from './components/DevicePreview'
 import { LoginScreen } from './components/LoginScreen'
 import { ProfileSetupScreen } from './components/ProfileSetupScreen'
 import { NotAtAirportScreen } from './components/NotAtAirportScreen'
+import { LoadingScreen } from './components/LoadingScreen'
 import { useSession } from './lib/useSession'
 import { useAirportPresence } from './lib/useAirportPresence'
 import { supabase } from './lib/supabase'
@@ -135,8 +136,7 @@ function App() {
   }
 
   const content = overallLoading ? (
-    // Проверка входа занимает доли секунды - полноценный экран загрузки не нужен
-    <div className="h-full w-full" />
+    <LoadingScreen />
   ) : !session ? (
     <LoginScreen />
   ) : !hasProfile ? (
