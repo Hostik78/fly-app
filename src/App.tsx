@@ -15,6 +15,9 @@ import { supabase } from './lib/supabase'
 import type { ProfileCategory } from './data/profiles'
 import type { HobbyId } from './data/hobbies'
 
+// Минимальное время показа экрана загрузки (см. showLoadingScreen ниже) - в мс.
+const MIN_LOADING_SCREEN_MS = 1200
+
 // lazy(...) - только AccountScreen: нужен не всем и не сразу (только по клику
 // на вкладку "Аккаунт"), поэтому его код браузер скачает отдельным кусочком,
 // когда он реально понадобится (граница ожидания - Suspense - стоит внутри
@@ -112,6 +115,22 @@ function App() {
   // потом (уже войдя) анкету и публикацию разом.
   const overallLoading = loading || (!!session && accountLoading)
 
+  // Экран загрузки (см. LoadingScreen.tsx) должен продержаться хотя бы MIN_LOADING_SCREEN_MS -
+  // без этого он в большинстве случаев исчезал бы почти мгновенно (проверка входа обычно
+  // читается из уже сохранённых данных телефона, без обращения к серверу, за доли секунды),
+  // а само видео из интернета за это время физически не успевает скачаться и показать
+  // хотя бы один кадр - человек просто никогда не видел бы анимацию. Так же поступают
+  // обычные приложения - у них заставка тоже держится какое-то минимальное время, а не
+  // исчезает раньше, чем успела показаться. Если реальная загрузка медленнее этого времени
+  // (например, плохой интернет) - экран и так останется столько, сколько нужно по-настоящему,
+  // это лишь НИЖНЯЯ граница, а не искусственная задержка сверх реальной загрузки.
+  const [minLoadingScreenElapsed, setMinLoadingScreenElapsed] = useState(false)
+  useEffect(() => {
+    const timer = setTimeout(() => setMinLoadingScreenElapsed(true), MIN_LOADING_SCREEN_MS)
+    return () => clearTimeout(timer)
+  }, [])
+  const showLoadingScreen = overallLoading || !minLoadingScreenElapsed
+
   async function handleProfileSubmit(
     gender: 'male' | 'female' | null,
     age: number | null,
@@ -135,7 +154,7 @@ function App() {
     setHasPosted(true)
   }
 
-  const content = overallLoading ? (
+  const content = showLoadingScreen ? (
     <LoadingScreen />
   ) : !session ? (
     <LoginScreen />
