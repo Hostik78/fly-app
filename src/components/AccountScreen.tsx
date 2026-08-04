@@ -1,7 +1,7 @@
 // Экран "Аккаунт" - все пункты подключены к настоящему бэкенду или ведут на
 // настоящий экран: "Выйти", "Редактировать анкету", "Изменить заметку", "Кто
 // меня лайкнул" (см. useLikedByCount), "Уведомления" (см. usePushNotifications),
-// "Помощь" (см. HelpScreen.tsx).
+// "Заблокированные" (см. BlockedAccountsScreen.tsx), "Помощь" (см. HelpScreen.tsx).
 import { useRef, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -12,6 +12,7 @@ import { getAvatarUrl, uploadAvatar } from '../lib/avatar'
 import { ProfileSetupScreen } from './ProfileSetupScreen'
 import { CreateStatusScreen } from './CreateStatusScreen'
 import { HelpScreen } from './HelpScreen'
+import { BlockedAccountsScreen } from './BlockedAccountsScreen'
 import type { AppOutletContext } from './AppShell'
 import type { ProfileCategory } from '../data/profiles'
 import type { HobbyId } from '../data/hobbies'
@@ -38,6 +39,7 @@ export function AccountScreen() {
   const [post, setPost] = useState<PostRow | null>(null)
   const [loadingPost, setLoadingPost] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
+  const [showBlocked, setShowBlocked] = useState(false)
   // Фото профиля - показываем сразу, оптимистично (публичный бакет, см. avatar.ts) -
   // если файла на самом деле нет, <img onError> сам переключит на градиент-заглушку,
   // отдельно спрашивать базу "есть ли фото" не нужно.
@@ -150,6 +152,10 @@ export function AccountScreen() {
 
   if (showHelp) {
     return <HelpScreen onBack={() => setShowHelp(false)} />
+  }
+
+  if (showBlocked) {
+    return <BlockedAccountsScreen currentUserId={currentUserId} onBack={() => setShowBlocked(false)} />
   }
 
   return (
@@ -268,6 +274,14 @@ export function AccountScreen() {
           {pushNotifications.error && (
             <p className="text-xs text-fly-gray px-1">{pushNotifications.error}</p>
           )}
+
+          <button
+            type="button"
+            onClick={() => setShowBlocked(true)}
+            className="px-4 py-3 rounded-fly-md bg-fly-glass backdrop-blur-fly-glass border border-fly-glass-border text-sm text-fly-ink text-left"
+          >
+            Заблокированные
+          </button>
 
           <button
             type="button"

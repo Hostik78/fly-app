@@ -1,16 +1,21 @@
-// Хук, который вычисляет настоящие совпадения (взаимный лайк): кого лайкнул(а) я,
-// и кто лайкнул(а) меня - пересечение этих двух списков и есть совпадения.
-// Публикации и анкеты для них склеиваются так же, как в useFeedProfiles.ts - независимая
-// копия той же небольшой логики: два хука, у каждого свой источник списка user_id
-// (там - "все, кроме себя", здесь - "пересечение лайков"), общий хелпер пока не выносим,
-// чтобы не трогать уже проверенный useFeedProfiles ради такого небольшого дублирования.
+// Хук, который вычисляет настоящие совпадения (взаимный лайк, минус
+// заблокированные) - сам список id приходит из готовой функции базы
+// get_match_user_ids() (см. миграцию 20260804152508), а не из вычитания
+// "сырого" списка блокировок на стороне кода (см. подробный комментарий в
+// самой миграции про то, почему так было раньше нельзя - можно было вычислить,
+// кто именно тебя заблокировал). Публикации и анкеты для найденных id
+// склеиваются так же, как в useFeedProfiles.ts - независимая копия той же
+// небольшой логики, общий хелпер пока не выносим, чтобы не трогать уже
+// проверенный useFeedProfiles ради такого небольшого дублирования.
 
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
 import type { Profile, ProfileCategory } from '../data/profiles'
 import type { HobbyId } from '../data/hobbies'
 
-export function useMatches(currentUserId: string | undefined): { matches: Profile[]; loading: boolean } {
+export function useMatches(
+  currentUserId: string | undefined,
+): { matches: Profile[]; loading: boolean; blockMatch: (userId: string) => Promise<void> } {
   const [matches, setMatches] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -19,19 +24,12 @@ export function useMatches(currentUserId: string | undefined): { matches: Profil
       setLoading(false)
       return
     }
-    // Копия в свою переменную - TypeScript не переносит сужение "не undefined"
-    // внутрь вложенной function load() (в отличие от обычных локальных переменных).
-    const userId = currentUserId
     let cancelled = false
     setLoading(true)
 
     async function load() {
-      const [{ data: iLiked }, { data: likedMe }] = await Promise.all([
-        supabase.from('likes').select('liked_id').eq('liker_id', userId),
-        supabase.from('likes').select('liker_id').eq('liked_id', userId),
-      ])
-      const likedMeSet = new Set((likedMe ?? []).map((row) => row.liker_id))
-      const matchUserIds = (iLiked ?? []).map((row) => row.liked_id).filter((id) => likedMeSet.has(id))
+      const { data: matchRows } = await supabase.rpc('get_match_user_ids')
+      const matchUserIds = (matchRows ?? []).map((row) => row.user_id)
 
       if (matchUserIds.length === 0) {
         if (!cancelled) {
@@ -76,5 +74,16 @@ export function useMatches(currentUserId: string | undefined): { matches: Profil
     }
   }, [currentUserId])
 
-  return { matches, loading }
+  // "Заблокировать" из открытого чата (см. ChatScreen.tsx/ProfileDetailSheet.tsx) -
+  // сохраняет блокировку (её сразу учтёт get_match_user_ids выше при следующей
+  // загрузке) и убирает совпадение из списка сразу же, тем же приёмом, что и
+  // hideProfile/blockProfile в useFeedProfiles.ts.
+  async function blockMatch(userId: string) {
+    if (!currentUserId) return
+    const { error } = await supabase.from('blocked_users').insert({ blocker_id: currentUserId, blocked_id: userId })
+    if (error) throw error
+    setMatches((current) => current.filter((profile) => profile.id !== userId))
+  }
+
+  return { matches, loading, blockMatch }
 }

@@ -14,6 +14,10 @@ import { ProfileDetailSheet } from './ProfileDetailSheet'
 interface ChatScreenProps {
   match: Profile
   onBack: () => void
+  // "Заблокировать" из открытой карточки профиля (см. ProfileDetailSheet ниже) -
+  // сам поход в базу живёт в useMatches.ts (blockMatch), тут только реакция:
+  // закрыть карточку и вернуться к списку совпадений, раз этот чат исчезнет.
+  onBlock: (profile: Profile) => Promise<void>
 }
 
 // Статус своего сообщения под пузырём - только на message.from === 'me' (см.
@@ -28,7 +32,7 @@ function messageStatusLabel(message: ChatMessage): string {
 // Экран переписки с одним конкретным совпадением. Это не отдельный маршрут,
 // а вид, который MessagesScreen показывает вместо списка, когда выбрано совпадение -
 // так проще, чем заводить новый URL-путь ради одного экрана.
-export function ChatScreen({ match, onBack }: ChatScreenProps) {
+export function ChatScreen({ match, onBack, onBlock }: ChatScreenProps) {
   const { currentUserId, onlineUserIds } = useOutletContext<AppOutletContext>()
   const { messages: dbMessages, loading, sendMessage } = useConversation(currentUserId, match.id)
   const { theyAreTyping, notifyTyping } = useTypingChannel(currentUserId, match.id)
@@ -54,6 +58,15 @@ export function ChatScreen({ match, onBack }: ChatScreenProps) {
   const hasSentMessage = messages.some((message) => message.from === 'me')
   const icebreakers =
     !hasSentMessage && match.category === 'hobbies' && match.hobby ? getIcebreakers(match.hobby) : []
+
+  // После успешной блокировки самого чата больше нет смысла (см. useMatches.ts -
+  // совпадение уже убрано из списка) - закрываем карточку и уходим на список,
+  // а не оставляем человека на пустом экране переписки, которой формально уже нет.
+  async function handleBlock(profile: Profile) {
+    await onBlock(profile)
+    setShowProfile(false)
+    onBack()
+  }
 
   async function handleSend() {
     const text = draft.trim()
@@ -189,7 +202,14 @@ export function ChatScreen({ match, onBack }: ChatScreenProps) {
         </button>
       </div>
 
-      {showProfile && <ProfileDetailSheet profile={match} online={isOnline} onClose={() => setShowProfile(false)} />}
+      {showProfile && (
+        <ProfileDetailSheet
+          profile={match}
+          online={isOnline}
+          onClose={() => setShowProfile(false)}
+          onBlock={handleBlock}
+        />
+      )}
     </div>
   )
 }

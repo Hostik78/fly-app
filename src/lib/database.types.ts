@@ -39,6 +39,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      blocked_users: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       hidden_profiles: {
         Row: {
           created_at: string
@@ -213,6 +231,22 @@ export type Database = {
     }
     Functions: {
       count_pending_likes: { Args: never; Returns: number }
+      get_feed_posts: {
+        Args: never
+        Returns: {
+          category: string
+          created_at: string
+          hobby: string
+          quote: string
+          user_id: string
+        }[]
+      }
+      get_match_user_ids: {
+        Args: never
+        Returns: {
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

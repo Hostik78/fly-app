@@ -30,15 +30,22 @@ interface ProfileCardProps {
   // раньше, просто иконкой без действия (так в ProfileDetailSheet.tsx: скрывать
   // из ленты уже совпавшего с тобой человека не имеет смысла).
   onHide?: (profile: Profile) => Promise<void>
+  // "Заблокировать" - более серьёзное действие, чем "Скрыть анкету": прячет
+  // человека взаимно (ни я его, ни он меня) и запрещает переписку на уровне
+  // базы (см. useFeedProfiles.ts/useMatches.ts). В отличие от onHide, эта
+  // кнопка нужна и в ProfileDetailSheet.tsx (в чате) - заблокировать того,
+  // с кем уже есть совпадение, самый частый настоящий случай использования.
+  onBlock?: (profile: Profile) => Promise<void>
 }
 
-export function ProfileCard({ profile, online = false, onLike, onHide }: ProfileCardProps) {
+export function ProfileCard({ profile, online = false, onLike, onHide, onBlock }: ProfileCardProps) {
   // liked - отметил ли пользователь эту анкету лайком. Берём из уже сохранённого
   // состояния (profile.likedByMe), а не всегда "нет" - иначе при повторном заходе
   // в ленту можно было бы по ошибке попробовать лайкнуть того же человека ещё раз.
   const [liked, setLiked] = useState(profile.likedByMe)
   const [menuOpen, setMenuOpen] = useState(false)
   const [hiding, setHiding] = useState(false)
+  const [blocking, setBlocking] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   // Закрыть меню "⋯" кликом мимо него - стандартное поведение выпадающих
@@ -95,6 +102,19 @@ export function ProfileCard({ profile, online = false, onLike, onHide }: Profile
     }
   }
 
+  async function handleBlockClick() {
+    if (!onBlock || blocking) return
+    setBlocking(true)
+    try {
+      await onBlock(profile)
+      // Успех - так же, как и с onHide выше, родитель убирает карточку/закрывает
+      // экран сам (см. blockProfile в useFeedProfiles.ts, blockMatch в useMatches.ts).
+    } catch {
+      setBlocking(false)
+      setMenuOpen(false)
+    }
+  }
+
   return (
     <div className="relative bg-fly-glass backdrop-blur-fly-glass border border-fly-glass-border rounded-fly-glass shadow-[0_8px_24px_rgba(60,80,120,0.12)] pl-5 pr-4 py-4">
       {/* Верхняя строка: маленький кружок-фото (см. Avatar.tsx - настоящее фото,
@@ -117,9 +137,10 @@ export function ProfileCard({ profile, online = false, onLike, onHide }: Profile
           </span>
         </div>
         {/* "⋯" - раньше была просто нарисованной иконкой без действия по клику
-            (мёртвая кнопка). Теперь, если передан onHide (см. пропс выше) -
-            настоящая кнопка с меню из одного пункта "Скрыть анкету". */}
-        {onHide ? (
+            (мёртвая кнопка). Теперь, если передан onHide и/или onBlock (см. пропсы
+            выше) - настоящая кнопка с меню из соответствующих пунктов. "Заблокировать"
+            отдельным цветом (fly-danger) - это необратимее и серьёзнее, чем "Скрыть". */}
+        {onHide || onBlock ? (
           <div ref={menuRef} className="relative flex-shrink-0">
             <button
               onClick={() => setMenuOpen((open) => !open)}
@@ -129,13 +150,24 @@ export function ProfileCard({ profile, online = false, onLike, onHide }: Profile
             </button>
             {menuOpen && (
               <div className="absolute right-0 top-9 z-10 bg-fly-glass-solid backdrop-blur-fly-glass border border-fly-glass-border rounded-fly-md shadow-[0_8px_24px_rgba(60,80,120,0.18)] overflow-hidden">
-                <button
-                  onClick={handleHideClick}
-                  disabled={hiding}
-                  className="text-left text-sm text-fly-ink px-4 py-2.5 whitespace-nowrap hover:bg-fly-fog transition-colors disabled:opacity-50"
-                >
-                  {hiding ? 'Скрываем…' : 'Скрыть анкету'}
-                </button>
+                {onHide && (
+                  <button
+                    onClick={handleHideClick}
+                    disabled={hiding}
+                    className="text-left text-sm text-fly-ink px-4 py-2.5 whitespace-nowrap hover:bg-fly-fog transition-colors disabled:opacity-50"
+                  >
+                    {hiding ? 'Скрываем…' : 'Скрыть анкету'}
+                  </button>
+                )}
+                {onBlock && (
+                  <button
+                    onClick={handleBlockClick}
+                    disabled={blocking}
+                    className="text-left text-sm text-fly-danger px-4 py-2.5 whitespace-nowrap hover:bg-fly-tint-danger transition-colors disabled:opacity-50"
+                  >
+                    {blocking ? 'Блокируем…' : 'Заблокировать'}
+                  </button>
+                )}
               </div>
             )}
           </div>

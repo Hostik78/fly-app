@@ -33,7 +33,7 @@ export function FeedScreen() {
   // currentUserId пришёл из AppShell через контекст маршрута - нужен, чтобы запросить
   // ленту без своей же собственной публикации.
   const { currentUserId, onlineUserIds } = useOutletContext<AppOutletContext>()
-  const { profiles, loading, markLiked, hideProfile } = useFeedProfiles(currentUserId)
+  const { profiles, loading, markLiked, hideProfile, blockProfile } = useFeedProfiles(currentUserId)
 
   // Сохраняет лайк в базу. ProfileCard сам показывает "лайкнуто" сразу (оптимистично)
   // и откатывает обратно, если это не получилось - здесь сам поход в базу и обновление
@@ -50,6 +50,12 @@ export function FeedScreen() {
   // базу и удаление из списка - внутри hideProfile (useFeedProfiles.ts).
   async function handleHide(profile: Profile) {
     await hideProfile(profile.id)
+  }
+
+  // "Заблокировать" - кнопка "⋯" на карточке (см. ProfileCard.tsx). Сам поход в
+  // базу и удаление из списка - внутри blockProfile (useFeedProfiles.ts).
+  async function handleBlock(profile: Profile) {
+    await blockProfile(profile.id)
   }
 
   // Запоминаем, какой фильтр сейчас выбран. По умолчанию — "Все".
@@ -152,6 +158,7 @@ export function FeedScreen() {
                 online={onlineUserIds.has(profile.id)}
                 onLike={handleLike}
                 onHide={handleHide}
+                onBlock={handleBlock}
               />
             ))}
 

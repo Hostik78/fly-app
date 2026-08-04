@@ -16,7 +16,7 @@ const ChatScreen = lazy(() => import('./ChatScreen').then((m) => ({ default: m.C
 // на любое из них - открывает переписку с этим человеком (см. ChatScreen).
 export function MessagesScreen() {
   const { currentUserId, onlineUserIds } = useOutletContext<AppOutletContext>()
-  const { matches, loading } = useMatches(currentUserId)
+  const { matches, loading, blockMatch } = useMatches(currentUserId)
 
   // Какое совпадение сейчас открыто как переписка. null - показываем список.
   const [openMatch, setOpenMatch] = useState<Profile | null>(null)
@@ -32,10 +32,17 @@ export function MessagesScreen() {
     matches.filter((match) => match.id !== openMatch?.id).map((match) => match.id),
   )
 
+  // "Заблокировать" из открытого чата (см. ChatScreen.tsx) - сам поход в базу
+  // и удаление совпадения из списка живёт в useMatches.ts (blockMatch), тут
+  // только передаём его дальше по id профиля.
+  async function handleBlock(profile: Profile) {
+    await blockMatch(profile.id)
+  }
+
   if (openMatch) {
     return (
       <Suspense fallback={<div className="h-full w-full" />}>
-        <ChatScreen match={openMatch} onBack={() => setOpenMatch(null)} />
+        <ChatScreen match={openMatch} onBack={() => setOpenMatch(null)} onBlock={handleBlock} />
       </Suspense>
     )
   }
