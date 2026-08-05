@@ -100,3 +100,15 @@ TwaManifest.fromWebManifest('https://fly-app-eight.vercel.app/manifest.webmanife
   регенерирует AndroidManifest.xml с нуля и молча вернёт эти три строки
   обратно. После такой пересборки нужно снова вручную убрать их из
   AndroidManifest.xml (внутри тега `<activity>` с `android:name=".LauncherActivity"`).
+- Помимо этой кастомной TWA-заставки есть ЕЩЁ один, отдельный слой: начиная с
+  Android 12 (API 31+) сама система обязательно показывает свою заставку с
+  иконкой приложения (`res/mipmap*/ic_launcher.png` - тот же логотип "Fly") со
+  своей анимацией исчезновения, ДО того как активность вообще успевает
+  запуститься - это поведение самого Android, не что-то из twa-manifest.json.
+  Убрано отдельно (2026-08-05) в
+  `app/src/main/java/app/fly/twa/LauncherActivity.java` -
+  `getSplashScreen().setOnExitAnimationListener(view -> view.remove())` в
+  `onCreate()` убирает анимацию выхода системной заставки (официальный API
+  Android для этого, не взлом). Если LauncherActivity.java когда-нибудь будет
+  пересоздан заново (`bubblewrap init` с нуля) - эту правку нужно будет внести
+  повторно вручную.
