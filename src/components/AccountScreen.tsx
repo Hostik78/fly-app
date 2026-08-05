@@ -1,7 +1,8 @@
 // Экран "Аккаунт" - все пункты подключены к настоящему бэкенду или ведут на
 // настоящий экран: "Выйти", "Редактировать анкету", "Изменить заметку", "Кто
 // меня лайкнул" (см. useLikedByCount), "Уведомления" (см. usePushNotifications),
-// "Заблокированные" (см. BlockedAccountsScreen.tsx), "Помощь" (см. HelpScreen.tsx).
+// "Заблокированные" (см. BlockedAccountsScreen.tsx), "Помощь" (см. HelpScreen.tsx),
+// "Удалить аккаунт" (см. deleteAccount.ts и api/delete-account.ts).
 import { useRef, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -9,6 +10,7 @@ import { getLanguageCodesFromNames } from '../data/languages'
 import { useLikedByCount } from '../lib/useLikedByCount'
 import { usePushNotifications } from '../lib/usePushNotifications'
 import { getAvatarUrl, uploadAvatar } from '../lib/avatar'
+import { deleteAccount } from '../lib/deleteAccount'
 import { ProfileSetupScreen } from './ProfileSetupScreen'
 import { CreateStatusScreen } from './CreateStatusScreen'
 import { HelpScreen } from './HelpScreen'
@@ -48,9 +50,30 @@ export function AccountScreen() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [avatarError, setAvatarError] = useState<string | null>(null)
   const avatarInputRef = useRef<HTMLInputElement>(null)
+  // Удаление аккаунта - необратимое действие, поэтому не срабатывает с одного
+  // нажатия: сперва показываем предупреждение и просим подтвердить отдельной
+  // кнопкой (confirmingDelete), и только после этого реально удаляем.
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [deletingAccount, setDeletingAccount] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   function handleSignOut() {
     void supabase.auth.signOut()
+  }
+
+  async function handleDeleteAccount() {
+    setDeletingAccount(true)
+    setDeleteError(null)
+    try {
+      await deleteAccount()
+      // Сам аккаунт уже удалён на сервере - signOut тут только чистит
+      // локально сохранённый вход в этом браузере, дальше App.tsx сам
+      // заметит, что сессии больше нет, и покажет экран входа.
+      await supabase.auth.signOut()
+    } catch {
+      setDeleteError('Не получилось удалить аккаунт. Попробуйте ещё раз или напишите на почту в Помощи.')
+      setDeletingAccount(false)
+    }
   }
 
   async function handleAvatarChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -298,6 +321,43 @@ export function AccountScreen() {
           >
             Выйти
           </button>
+
+          {/* Удаление аккаунта - в два шага (см. confirmingDelete выше), не с одного
+              нажатия: необратимое действие, случайный тап не должен всё стереть. */}
+          {confirmingDelete ? (
+            <div className="px-4 py-3 rounded-fly-md bg-fly-tint-danger border border-fly-glass-border flex flex-col gap-3">
+              <p className="text-sm text-fly-ink">
+                Аккаунт, анкета, переписка и фото удалятся навсегда. Это нельзя отменить.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={deletingAccount}
+                  onClick={handleDeleteAccount}
+                  className="flex-1 px-4 py-2.5 rounded-fly-md bg-fly-danger text-white text-sm font-semibold transition-opacity disabled:opacity-60"
+                >
+                  {deletingAccount ? 'Удаляем…' : 'Да, удалить всё'}
+                </button>
+                <button
+                  type="button"
+                  disabled={deletingAccount}
+                  onClick={() => setConfirmingDelete(false)}
+                  className="flex-1 px-4 py-2.5 rounded-fly-md bg-fly-glass-solid text-fly-ink text-sm font-semibold transition-opacity disabled:opacity-60"
+                >
+                  Отмена
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(true)}
+              className="px-4 py-3 rounded-fly-md bg-fly-glass backdrop-blur-fly-glass border border-fly-glass-border text-sm text-fly-danger text-left"
+            >
+              Удалить аккаунт
+            </button>
+          )}
+          {deleteError && <p className="text-xs text-fly-gray px-1">{deleteError}</p>}
         </div>
       </div>
     </div>
