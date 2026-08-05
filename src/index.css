@@ -103,6 +103,92 @@ html, body, #root {
   background-attachment: fixed;
 }
 
+/* --- Тёмная тема - см. docs/superpowers/specs/2026-08-06-dark-theme-design.md ---
+   Направление выбрано через визуальные макеты (4 варианта показаны в браузере,
+   пользователь выбрал): почти чёрный фон с едва заметным синим оттенком, плоские
+   карточки без размытия (блюр на тёмном фоне обычно выглядит мутно, а не
+   "стеклянно" - сплошной чуть более светлый цвет даёт тот же эффект отдельного
+   слоя без мутности). Синий акцент/гендерные цвета/зелёный "онлайн"/красный
+   "опасно"/фиолетовый ИИ - фирменные цвета, одинаковые в обеих темах, их тут нет.
+
+   Каждый токен переопределяется здесь по ИМЕНИ (то же самое имя, что и в @theme
+   выше) - ни один файл компонента не знает и не должен знать о существовании
+   тёмной темы вообще, он как использовал bg-fly-ink/bg-fly-glass, так и
+   продолжает - просто у переменной за этим именем теперь другое значение.
+
+   Два способа попасть в тёмную тему (см. src/lib/theme.ts):
+   - prefers-color-scheme: dark - человек ничего не выбирал вручную в Аккаунте,
+     тема следует за настройкой самого телефона.
+   - :root[data-theme="dark"] - человек явно выбрал "Тёмная" в Аккаунте.
+     У атрибутного селектора выше специфичность (важность), чем у селектора
+     внутри media-блока, поэтому он побеждает системную настройку сам по себе,
+     независимо от порядка строк в файле.
+   - :root[data-theme="light"] - обратный случай: телефон в тёмном режиме, но
+     человек явно выбрал "Светлая" - отменяет системную тёмную тему, теми же
+     значениями, что и в @theme выше (явно, а не "просто ничего не переопределять" -
+     иначе внутри @media (prefers-color-scheme: dark) она бы всё равно победила). */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-fly-tint-accent: #16233A;
+    --color-fly-tint-danger: #2A1518;
+    --color-fly-gray: #8891A0;
+    --color-fly-placeholder: #6E7688;
+    --color-fly-ink: #F5F7FB;
+    --color-fly-tint-violet: #201B38;
+    --color-fly-glass: #141820;
+    --color-fly-glass-border: rgba(160, 190, 255, 0.09);
+    --color-fly-glass-solid: #1C2230;
+    --color-fly-fog: #171C26;
+    --color-fly-fog-strong: #232A38;
+    --color-fly-hairline: rgba(160, 190, 255, 0.08);
+    --color-fly-bg: #060708;
+  }
+  #root {
+    background: linear-gradient(160deg, #0B0E16 0%, #060708 100%);
+  }
+}
+
+:root[data-theme='dark'] {
+  --color-fly-tint-accent: #16233A;
+  --color-fly-tint-danger: #2A1518;
+  --color-fly-gray: #8891A0;
+  --color-fly-placeholder: #6E7688;
+  --color-fly-ink: #F5F7FB;
+  --color-fly-tint-violet: #201B38;
+  --color-fly-glass: #141820;
+  --color-fly-glass-border: rgba(160, 190, 255, 0.09);
+  --color-fly-glass-solid: #1C2230;
+  --color-fly-fog: #171C26;
+  --color-fly-fog-strong: #232A38;
+  --color-fly-hairline: rgba(160, 190, 255, 0.08);
+  --color-fly-bg: #060708;
+}
+:root[data-theme='dark'] #root {
+  background: linear-gradient(160deg, #0B0E16 0%, #060708 100%);
+}
+
+:root[data-theme='light'] {
+  --color-fly-tint-accent: #EEF6FD;
+  --color-fly-tint-danger: #FDECEC;
+  --color-fly-gray: #838B9B;
+  --color-fly-placeholder: #7C8494;
+  --color-fly-ink: #241726;
+  --color-fly-tint-violet: #F1EDFF;
+  --color-fly-glass: rgba(255, 255, 255, 0.55);
+  --color-fly-glass-border: rgba(255, 255, 255, 0.6);
+  --color-fly-glass-solid: rgba(255, 255, 255, 0.85);
+  --color-fly-fog: #F7F1EC;
+  --color-fly-fog-strong: #EFE6DE;
+  --color-fly-hairline: #F1E7DF;
+  --color-fly-bg: #FFF6F1;
+}
+:root[data-theme='light'] #root {
+  background:
+    radial-gradient(120% 60% at 15% 0%, #DCEBFB 0%, transparent 60%),
+    radial-gradient(120% 60% at 100% 100%, #FBEADC 0%, transparent 55%),
+    #FFF6F1;
+}
+
 /* Приложение по сути мобильное (нижняя навигация, вертикальные карточки) - не
    веб-страница с адаптивной вёрсткой под широкий экран. На настоящем телефоне
    ширина и так узкая, но на любом ШИРОКОМ экране #root без этого правила

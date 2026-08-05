@@ -3,6 +3,14 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import loadingVideo from './assets/loading-screen.mp4'
+import { applyTheme, getStoredTheme } from './lib/theme'
+
+// Применяем выбранную тему (см. lib/theme.ts) максимально рано, до того как
+// React вообще начнёт что-либо рисовать - если ждать, пока сам компонент
+// экрана Аккаунта или App.tsx это сделает, при вручную выбранной тёмной теме
+// на телефоне со светлой системной настройкой на долю секунды мелькнул бы
+// неправильный (светлый) вариант, прежде чем применился бы нужный.
+applyTheme(getStoredTheme())
 
 // Начинаем скачивать видео для экрана загрузки (см. LoadingScreen.tsx) прямо
 // сейчас, до того как React вообще успеет что-либо отрисовать. Без этой

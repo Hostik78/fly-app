@@ -1,8 +1,9 @@
 // Экран "Аккаунт" - все пункты подключены к настоящему бэкенду или ведут на
 // настоящий экран: "Выйти", "Редактировать анкету", "Изменить заметку", "Кто
 // меня лайкнул" (см. useLikedByCount), "Уведомления" (см. usePushNotifications),
-// "Заблокированные" (см. BlockedAccountsScreen.tsx), "Помощь" (см. HelpScreen.tsx),
-// "Удалить аккаунт" (см. deleteAccount.ts и api/delete-account.ts).
+// "Оформление" (см. useTheme.ts), "Заблокированные" (см. BlockedAccountsScreen.tsx),
+// "Помощь" (см. HelpScreen.tsx), "Удалить аккаунт" (см. deleteAccount.ts и
+// api/delete-account.ts).
 import { useRef, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -11,6 +12,8 @@ import { useLikedByCount } from '../lib/useLikedByCount'
 import { usePushNotifications } from '../lib/usePushNotifications'
 import { getAvatarUrl, uploadAvatar } from '../lib/avatar'
 import { deleteAccount } from '../lib/deleteAccount'
+import { useTheme } from '../lib/useTheme'
+import type { ThemePreference } from '../lib/theme'
 import { ProfileSetupScreen } from './ProfileSetupScreen'
 import { CreateStatusScreen } from './CreateStatusScreen'
 import { HelpScreen } from './HelpScreen'
@@ -18,6 +21,12 @@ import { BlockedAccountsScreen } from './BlockedAccountsScreen'
 import type { AppOutletContext } from './AppShell'
 import type { ProfileCategory } from '../data/profiles'
 import type { HobbyId } from '../data/hobbies'
+
+const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
+  { value: 'system', label: 'Как в телефоне' },
+  { value: 'light', label: 'Светлая' },
+  { value: 'dark', label: 'Тёмная' },
+]
 
 interface ProfileRow {
   gender: 'male' | 'female' | null
@@ -36,6 +45,7 @@ export function AccountScreen() {
   const { currentUserId } = useOutletContext<AppOutletContext>()
   const { count: likedByCount } = useLikedByCount(currentUserId)
   const pushNotifications = usePushNotifications(currentUserId)
+  const { theme, setTheme } = useTheme()
   const [profile, setProfile] = useState<ProfileRow | null>(null)
   const [loadingProfile, setLoadingProfile] = useState(false)
   const [post, setPost] = useState<PostRow | null>(null)
@@ -297,6 +307,28 @@ export function AccountScreen() {
           {pushNotifications.error && (
             <p className="text-xs text-fly-gray px-1">{pushNotifications.error}</p>
           )}
+
+          {/* Оформление - три положения, как в iOS (см. useTheme.ts): по умолчанию
+              следует за настройкой самого телефона, можно перебить вручную. */}
+          <div className="px-4 py-3 rounded-fly-md bg-fly-glass backdrop-blur-fly-glass border border-fly-glass-border">
+            <div className="text-sm text-fly-ink mb-2.5">Оформление</div>
+            <div className="flex gap-1.5">
+              {THEME_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setTheme(option.value)}
+                  className={
+                    theme === option.value
+                      ? 'flex-1 px-2 py-2 rounded-fly-sm text-xs font-semibold bg-fly-ink text-white transition-colors'
+                      : 'flex-1 px-2 py-2 rounded-fly-sm text-xs font-semibold bg-fly-fog text-fly-gray transition-colors'
+                  }
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
           <button
             type="button"
