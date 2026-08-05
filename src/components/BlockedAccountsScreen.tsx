@@ -24,6 +24,7 @@ export function BlockedAccountsScreen({ currentUserId, onBack }: BlockedAccounts
   const [heightMin, setHeightMin] = useState('')
   const [heightMax, setHeightMax] = useState('')
   const [unblockingId, setUnblockingId] = useState<string | null>(null)
+  const [unblockError, setUnblockError] = useState<string | null>(null)
 
   // Пересчитывается только когда реально что-то поменялось (список или любое
   // из полей фильтра), а не на каждой перерисовке экрана.
@@ -50,8 +51,14 @@ export function BlockedAccountsScreen({ currentUserId, onBack }: BlockedAccounts
 
   async function handleUnblock(userId: string) {
     setUnblockingId(userId)
+    setUnblockError(null)
     try {
       await unblock(userId)
+    } catch {
+      // Раньше ошибка тут никак не показывалась - кнопка на миг мигала "…" и
+      // возвращалась в исходное состояние, человек не понимал бы, сработало
+      // разблокирование или нет.
+      setUnblockError('Не получилось разблокировать. Попробуйте ещё раз.')
     } finally {
       setUnblockingId(null)
     }
@@ -119,6 +126,8 @@ export function BlockedAccountsScreen({ currentUserId, onBack }: BlockedAccounts
           </div>
         </div>
       )}
+
+      {unblockError && <p className="text-xs text-fly-gray text-center px-6 pb-2">{unblockError}</p>}
 
       {loading ? (
         <p className="text-center text-sm text-fly-gray py-10">Загружаем…</p>

@@ -5,8 +5,10 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import Anthropic from '@anthropic-ai/sdk'
+import { createClient } from '@supabase/supabase-js'
 
 const client = new Anthropic()
+const supabaseAdmin = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 interface SuggestRequestBody {
   category?: string
@@ -17,15 +19,34 @@ interface SuggestRequestBody {
   }
 }
 
+const MAX_CATEGORY_LENGTH = 40
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     res.status(405).json({ suggestions: [] })
     return
   }
 
+  // Без этой проверки функцию мог дёргать кто угодно из интернета напрямую
+  // (не только сама браузерная кнопка "Нужна идея?" внутри приложения) - это
+  // прямой канал тратить деньги с привязанного платного Anthropic-аккаунта.
+  // Тот же приём, что и в api/delete-account.ts - токен подтверждает, что
+  // запрос пришёл от реально вошедшего пользователя.
+  const authHeader = req.headers.authorization
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
+  if (!token) {
+    res.status(401).json({ suggestions: [] })
+    return
+  }
+  const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token)
+  if (userError || !userData.user) {
+    res.status(401).json({ suggestions: [] })
+    return
+  }
+
   const { category, context } = req.body as SuggestRequestBody
 
-  if (!category || !context) {
+  if (!category || !context || category.length > MAX_CATEGORY_LENGTH) {
     res.status(400).json({ suggestions: [] })
     return
   }

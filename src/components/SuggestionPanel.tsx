@@ -12,6 +12,7 @@ import { getLiveContext } from '../lib/liveContext'
 import { getSuggestions } from '../data/suggestionTemplates'
 import type { ProfileCategory } from '../data/profiles'
 import { SparkleIcon } from './icons'
+import { supabase } from '../lib/supabase'
 
 interface SuggestionPanelProps {
   category: ProfileCategory
@@ -52,9 +53,17 @@ export function SuggestionPanel({ category, quote, onSelect }: SuggestionPanelPr
 
     setAiLoading(true)
     try {
+      // Сервер (api/suggest.ts) теперь принимает запрос только от реально
+      // вошедшего пользователя - без токена платный вызов ИИ мог бы дёргать
+      // кто угодно напрямую, не только эта кнопка внутри приложения.
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData.session?.access_token
       const response = await fetch('/api/suggest', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ category, context }),
       })
       const data = await response.json()

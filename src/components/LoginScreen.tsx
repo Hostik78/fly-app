@@ -11,17 +11,28 @@ export function LoginScreen() {
   const [email, setEmail] = useState('')
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
+  const [sendError, setSendError] = useState<string | null>(null)
 
   async function handleSendLink() {
     const trimmedEmail = email.trim()
     if (!trimmedEmail) return
 
     setSending(true)
-    await supabase.auth.signInWithOtp({
+    setSendError(null)
+    // Раньше ошибка тут не проверялась вообще - экран "мы отправили письмо"
+    // показывался, даже если Supabase на самом деле отказал (например,
+    // встроенное ограничение "не чаще одного письма в минуту", неверный
+    // формат почты или просто нет сети). Человек ждал бы письмо, которое
+    // никогда не придёт, и не понимал бы, почему.
+    const { error } = await supabase.auth.signInWithOtp({
       email: trimmedEmail,
       options: { emailRedirectTo: window.location.origin },
     })
     setSending(false)
+    if (error) {
+      setSendError('Не получилось отправить письмо. Проверьте адрес и попробуйте ещё раз.')
+      return
+    }
     setSent(true)
   }
 
@@ -73,6 +84,7 @@ export function LoginScreen() {
       >
         {sending ? 'Отправляем…' : 'Прислать ссылку для входа'}
       </button>
+      {sendError && <p className="text-xs text-fly-gray text-center px-6">{sendError}</p>}
     </div>
   )
 }
