@@ -1,8 +1,9 @@
 // Экран загрузки - показывается в самом начале, пока приложение проверяет,
-// вошли ли вы в аккаунт (см. overallLoading/showLoadingScreen в App.tsx) -
-// одинаково и для тех, кто уже входил раньше, и для тех, кто открывает сайт
-// впервые. Ролик зациклен (loop) на случай, если проверка займёт дольше своих
-// исходных 8 секунд.
+// вошли ли вы в аккаунт. Сколько именно он виден - решает не этот компонент,
+// а App.tsx (см. её комментарий про FIXED_LOADING_SCREEN_MS/sessionStorage -
+// фиксированное время, только на первую загрузку за вкладку, не на каждый
+// возврат в уже открытое приложение). Этот компонент только пытается красиво
+// заполнить это время видео, не управляет тем, сколько его показывать.
 //
 // bg-fly-bg (не bg-white) - тот же самый цвет фона, что указан в манифесте
 // PWA (background_color) и в настройках Android-приложения (backgroundColor
@@ -28,55 +29,30 @@
 // запуск (.play()) откладывается до события 'canplaythrough' - браузер сам
 // присылает его именно тогда, когда, по его оценке, докачает остаток файла
 // быстрее, чем видео успеет его "проиграть" - то есть проигрывание больше не
-// должно останавливаться на середине. Пока это событие не пришло - виден
-// статичный кадр (poster), тоже не пустой экран.
-//
-// Запасной таймер (FALLBACK_READY_MS) - на случай, если 'canplaythrough' так и
-// не пришло (например, совсем нет сети) - экран загрузки не должен зависнуть
-// навечно из-за одного лишь ролика. Он же на всякий случай пробует запустить
-// .play() - если видео к этому моменту готово частично, лучше показать хоть
-// что-то, чем ничего.
+// должно останавливаться на середине. Пока это событие не пришло (а на
+// медленной сети экран уже мог успеть закрыться по фиксированному времени из
+// App.tsx, так и не дождавшись его) - виден статичный кадр (poster), тоже не
+// пустой экран - никакого заикания в любом случае, потому что видео, которое
+// не готово, просто никогда не пытается начать играть.
 import { useEffect, useRef } from 'react'
 import loadingVideo from '../assets/loading-screen.mp4'
 import loadingPoster from '../assets/loading-screen-poster.jpg'
 
-const FALLBACK_READY_MS = 3500
-
-interface LoadingScreenProps {
-  onReady: () => void
-}
-
-export function LoadingScreen({ onReady }: LoadingScreenProps) {
+export function LoadingScreen() {
   const videoRef = useRef<HTMLVideoElement>(null)
-  // Общий "флажок" между запасным таймером и событием 'canplaythrough' - неважно,
-  // что сработает раньше, onReady должен уйти наружу только один раз.
-  const readyCalledRef = useRef(false)
-
-  function callOnReadyOnce() {
-    if (readyCalledRef.current) return
-    readyCalledRef.current = true
-    onReady()
-  }
 
   function handleCanPlayThrough() {
     videoRef.current?.play().catch(() => {})
-    callOnReadyOnce()
   }
 
   useEffect(() => {
-    const video = videoRef.current
     // Если браузер уже успел докачать видео раньше, чем React повесил
     // обработчик onCanPlayThrough ниже (бывает при закешированном видео на
     // повторном заходе) - readyState 4 (HAVE_ENOUGH_DATA) означает, что
-    // событие уже прошло мимо нас, и ждать его больше не нужно.
-    if (video && video.readyState >= 4) {
+    // событие уже прошло мимо нас, и запускать нужно вручную прямо тут.
+    if (videoRef.current && videoRef.current.readyState >= 4) {
       handleCanPlayThrough()
     }
-    const fallback = setTimeout(handleCanPlayThrough, FALLBACK_READY_MS)
-    return () => clearTimeout(fallback)
-    // onReady стабильна между рендерами (см. useCallback в App.tsx) -
-    // эффект не должен перезапускаться на каждый рендер самого экрана.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (

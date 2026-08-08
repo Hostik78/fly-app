@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, lazy, type ReactNode } from 'react'
+import { useEffect, useState, lazy, type ReactNode } from 'react'
 import { HashRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { FeedScreen } from './components/FeedScreen'
 import { MessagesScreen } from './components/MessagesScreen'
@@ -14,6 +14,21 @@ import { useAirportPresence } from './lib/useAirportPresence'
 import { supabase } from './lib/supabase'
 import type { ProfileCategory } from './data/profiles'
 import type { HobbyId } from './data/hobbies'
+
+// Заставка с волнами (см. LoadingScreen.tsx) - только для настоящей первой
+// загрузки приложения за эту вкладку, не для каждого возврата в уже открытое
+// приложение (заблокировали/разблокировали телефон, переключились на другое
+// приложение и вернулись обратно - это не перезагрузка страницы вообще, React
+// и так остаётся в памяти, эта логика тут ни при чём). sessionStorage - то,
+// что живёт, пока не закрыта именно эта вкладка/сессия браузера, и обнуляется
+// при её закрытии - то есть "показать один раз за сессию", ровно то, что нужно.
+const LOADING_SCREEN_SHOWN_KEY = 'fly-loading-screen-shown'
+// Фиксированное время показа - не "ждём, пока видео точно доиграется", а
+// заранее известное число, чтобы поведение было предсказуемым и не зависело
+// от скорости интернета в моменте. Само видео (см. LoadingScreen.tsx) играет,
+// если успевает - если нет, экран всё равно закроется по расписанию, просто
+// без видимой анимации внутри (там же есть статичная картинка-заглушка).
+const FIXED_LOADING_SCREEN_MS = 1400
 
 // lazy(...) - только AccountScreen: нужен не всем и не сразу (только по клику
 // на вкладку "Аккаунт"), поэтому его код браузер скачает отдельным кусочком,
@@ -112,17 +127,22 @@ function App() {
   // потом (уже войдя) анкету и публикацию разом.
   const overallLoading = loading || (!!session && accountLoading)
 
-  // Экран загрузки (см. LoadingScreen.tsx) должен продержаться, пока не готовы ОБА условия:
-  // проверка входа (overallLoading) и само видео заставки реально не начало проигрываться
-  // (videoReady - сообщает LoadingScreen через onReady, без гадания "сколько секунд подождать
-  // на глаз"). Без второго условия видео в большинстве случаев не успевало бы показать ни
-  // кадра - проверка входа обычно читается из уже сохранённых данных телефона почти мгновенно,
-  // а видео из интернета столько времени физически не хватало бы, чтобы скачаться. Никакой
-  // фиксированной задержки сверх реальной готовности тут нет - как только оба условия и так
-  // выполнены, переход происходит сразу же.
-  const [videoReady, setVideoReady] = useState(false)
-  const handleVideoReady = useCallback(() => setVideoReady(true), [])
-  const showLoadingScreen = overallLoading || !videoReady
+  // Показывать ли заставку с волнами прямо сейчас - см. константы выше. Если
+  // уже показывали в этой вкладке (например, человек просто вернулся из
+  // другого приложения, а не реально перезагрузил страницу) - не ждём вообще
+  // ничего сверх настоящих данных (overallLoading), заставка не появится
+  // заново. Если это первый раз за вкладку - держим её ровно
+  // FIXED_LOADING_SCREEN_MS, независимо от скорости интернета - и в любом
+  // случае не меньше, чем реально нужно на проверку входа.
+  const [shownBefore] = useState(() => sessionStorage.getItem(LOADING_SCREEN_SHOWN_KEY) === '1')
+  const [fixedTimeElapsed, setFixedTimeElapsed] = useState(shownBefore)
+  useEffect(() => {
+    if (shownBefore) return
+    sessionStorage.setItem(LOADING_SCREEN_SHOWN_KEY, '1')
+    const timer = setTimeout(() => setFixedTimeElapsed(true), FIXED_LOADING_SCREEN_MS)
+    return () => clearTimeout(timer)
+  }, [shownBefore])
+  const showLoadingScreen = overallLoading || !fixedTimeElapsed
 
   async function handleProfileSubmit(
     gender: 'male' | 'female' | null,
@@ -148,7 +168,7 @@ function App() {
   }
 
   const content = showLoadingScreen ? (
-    <LoadingScreen onReady={handleVideoReady} />
+    <LoadingScreen />
   ) : !session ? (
     <LoginScreen />
   ) : !hasProfile ? (
