@@ -80,7 +80,7 @@ export function LoginScreen() {
         type="button"
         disabled={!email.trim() || sending}
         onClick={handleSendLink}
-        className="w-full max-w-xs py-3.5 rounded-fly-md bg-fly-ink text-white font-semibold text-sm transition-opacity disabled:opacity-30"
+        className="w-full max-w-xs py-3.5 rounded-fly-md bg-fly-solid text-fly-solid-text font-semibold text-sm transition-opacity disabled:opacity-30"
       >
         {sending ? 'Отправляем…' : 'Прислать ссылку для входа'}
       </button>

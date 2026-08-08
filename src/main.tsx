@@ -27,6 +27,24 @@ preloadLink.as = 'video'
 preloadLink.href = loadingVideo
 document.head.appendChild(preloadLink)
 
+// Автообновление приложения без ручной перезагрузки. Раньше выход новой
+// версии сайта подхватывался только при СЛЕДУЮЩЕМ заходе в приложение (закрыть
+// и открыть заново) - service worker (см. sw.ts) обновляется в фоне сам
+// (registerType: 'autoUpdate' в vite.config.ts + skipWaiting/clientsClaim в
+// самом sw.ts), но уже открытая страница со старым кодом сама по себе не
+// узнавала, что за кулисами появилась новая версия. 'controllerchange' -
+// стандартное браузерное событие, которое приходит именно в момент, когда
+// новый service worker реально взял управление страницей - reload() тут же
+// подгружает уже новую версию, без участия человека.
+if ('serviceWorker' in navigator) {
+  let reloaded = false
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloaded) return
+    reloaded = true
+    window.location.reload()
+  })
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />

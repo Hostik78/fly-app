@@ -55,7 +55,8 @@ export function MessagesScreen() {
       </div>
 
       {loading ? (
-        <p className="text-center text-sm text-fly-gray py-10">Загружаем совпадения…</p>
+        // Пусто, без текста "Загружаем..." - см. тот же приём в FeedScreen.tsx.
+        <div className="flex-1" />
       ) : matches.length === 0 ? (
         // Пустое состояние по центру - совпадений пока нет
         <div className="flex-1 flex flex-col items-center justify-center gap-3 px-10 text-center">

@@ -104,7 +104,7 @@ export function CreateStatusScreen({ initialValues, submitLabel, onCancel, onSub
                 onClick={() => setCategory(item.id)}
                 className={
                   isActive
-                    ? 'px-4 py-2 rounded-full text-xs font-medium bg-fly-ink text-white transition-colors'
+                    ? 'px-4 py-2 rounded-full text-xs font-medium bg-fly-solid text-fly-solid-text transition-colors'
                     : 'px-4 py-2 rounded-full text-xs font-medium bg-fly-fog text-fly-gray transition-colors hover:bg-fly-fog-strong hover:text-fly-ink'
                 }
               >
@@ -127,7 +127,7 @@ export function CreateStatusScreen({ initialValues, submitLabel, onCancel, onSub
                     onClick={() => setHobby(item.id)}
                     className={
                       isActive
-                        ? 'px-4 py-2 rounded-full text-xs font-medium bg-fly-ink text-white transition-colors'
+                        ? 'px-4 py-2 rounded-full text-xs font-medium bg-fly-solid text-fly-solid-text transition-colors'
                         : 'px-4 py-2 rounded-full text-xs font-medium bg-fly-fog text-fly-gray transition-colors hover:bg-fly-fog-strong hover:text-fly-ink'
                     }
                   >

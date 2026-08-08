@@ -46,6 +46,18 @@
                                         Это цвет ТЕКСТА - он всегда непрозрачный, даже на
                                         стеклянных поверхностях (прозрачность - только у фона). */
 
+  /* --- "Сплошная" пара для активных таблеток-фильтров и главных кнопок
+     (выбранный фильтр ленты, "Прислать ссылку для входа" и т.п.) - ОТДЕЛЬНО от
+     fly-ink специально: раньше эти места красились в bg-fly-ink text-white
+     напрямую, полагаясь, что fly-ink "всегда тёмный" - но в тёмной теме
+     fly-ink специально становится СВЕТЛЫМ (это же цвет текста, он должен
+     контрастировать с фоном) - кнопка внезапно становилась почти белой, а
+     жёстко белый текст на ней переставал читаться. fly-solid/fly-solid-text -
+     всегда одна и та же ПАРА высокого контраста друг с другом, а не с фоном
+     страницы напрямую, поэтому безопасны для переиспользования где угодно. */
+  --color-fly-solid: #241726;
+  --color-fly-solid-text: #FFFFFF;
+
   /* --- Коралл и фиолетовый остаются определены, но больше не общий "акцент":
      коралл - только гендерный цвет (см. выше), фиолетовый - только для ИИ-подсказок
      (SuggestionPanel/SparkleIcon), отдельный узнаваемый сигнал "это подсказка ИИ". --- */
@@ -134,6 +146,8 @@ html, body, #root {
     --color-fly-gray: #8891A0;
     --color-fly-placeholder: #6E7688;
     --color-fly-ink: #F5F7FB;
+    --color-fly-solid: #F5F7FB;
+    --color-fly-solid-text: #14101A;
     --color-fly-tint-violet: #201B38;
     --color-fly-glass: #141820;
     --color-fly-glass-border: rgba(160, 190, 255, 0.09);
@@ -154,6 +168,8 @@ html, body, #root {
   --color-fly-gray: #8891A0;
   --color-fly-placeholder: #6E7688;
   --color-fly-ink: #F5F7FB;
+  --color-fly-solid: #F5F7FB;
+  --color-fly-solid-text: #14101A;
   --color-fly-tint-violet: #201B38;
   --color-fly-glass: #141820;
   --color-fly-glass-border: rgba(160, 190, 255, 0.09);
@@ -173,6 +189,8 @@ html, body, #root {
   --color-fly-gray: #838B9B;
   --color-fly-placeholder: #7C8494;
   --color-fly-ink: #241726;
+  --color-fly-solid: #241726;
+  --color-fly-solid-text: #FFFFFF;
   --color-fly-tint-violet: #F1EDFF;
   --color-fly-glass: rgba(255, 255, 255, 0.55);
   --color-fly-glass-border: rgba(255, 255, 255, 0.6);

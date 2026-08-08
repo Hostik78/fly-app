@@ -116,7 +116,7 @@ export function ProfileSetupScreen({ initialValues, submitLabel, onCancel, onSub
             onClick={() => setGender('male')}
             className={
               gender === 'male'
-                ? 'px-4 py-2 rounded-full text-xs font-medium bg-fly-ink text-white transition-colors'
+                ? 'px-4 py-2 rounded-full text-xs font-medium bg-fly-solid text-fly-solid-text transition-colors'
                 : 'px-4 py-2 rounded-full text-xs font-medium bg-fly-fog text-fly-gray transition-colors hover:bg-fly-fog-strong hover:text-fly-ink'
             }
           >
@@ -127,7 +127,7 @@ export function ProfileSetupScreen({ initialValues, submitLabel, onCancel, onSub
             onClick={() => setGender('female')}
             className={
               gender === 'female'
-                ? 'px-4 py-2 rounded-full text-xs font-medium bg-fly-ink text-white transition-colors'
+                ? 'px-4 py-2 rounded-full text-xs font-medium bg-fly-solid text-fly-solid-text transition-colors'
                 : 'px-4 py-2 rounded-full text-xs font-medium bg-fly-fog text-fly-gray transition-colors hover:bg-fly-fog-strong hover:text-fly-ink'
             }
           >

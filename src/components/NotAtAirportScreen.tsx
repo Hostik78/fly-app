@@ -28,7 +28,7 @@ export function NotAtAirportScreen({ status, distanceKm, onRetry }: NotAtAirport
       <button
         type="button"
         onClick={onRetry}
-        className="w-full max-w-xs py-3.5 rounded-fly-md bg-fly-ink text-white font-semibold text-sm"
+        className="w-full max-w-xs py-3.5 rounded-fly-md bg-fly-solid text-fly-solid-text font-semibold text-sm"
       >
         Проверить снова
       </button>

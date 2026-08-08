@@ -130,7 +130,8 @@ export function BlockedAccountsScreen({ currentUserId, onBack }: BlockedAccounts
       {unblockError && <p className="text-xs text-fly-gray text-center px-6 pb-2">{unblockError}</p>}
 
       {loading ? (
-        <p className="text-center text-sm text-fly-gray py-10">Загружаем…</p>
+        // Пусто, без текста "Загружаем..." - см. тот же приём в FeedScreen.tsx.
+        <div className="flex-1" />
       ) : blocked.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-2 px-10 text-center">
           <p className="text-sm text-fly-gray leading-relaxed">Заблокированных пока нет.</p>

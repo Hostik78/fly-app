@@ -232,9 +232,10 @@ export function AccountScreen() {
             onChange={handleAvatarChange}
             className="hidden"
           />
-          <p className="text-sm text-fly-gray">
-            {uploadingAvatar ? 'Загружаем фото…' : 'Нажмите на кружок, чтобы добавить фото'}
-          </p>
+          {/* Без текста "Загружаем..." во время загрузки - кружок и так уже
+              притемнён и показывает "…" поверх себя (см. выше), второй раз
+              то же самое словами не нужно. */}
+          <p className="text-sm text-fly-gray">Нажмите на кружок, чтобы добавить фото</p>
           {avatarError && <p className="text-xs text-fly-gray text-center px-6">{avatarError}</p>}
         </div>
 
@@ -245,7 +246,7 @@ export function AccountScreen() {
             onClick={startEditingProfile}
             className="px-4 py-3 rounded-fly-md bg-fly-glass backdrop-blur-fly-glass border border-fly-glass-border text-sm text-fly-ink text-left transition-opacity disabled:opacity-60"
           >
-            {loadingProfile ? 'Загружаем…' : 'Редактировать анкету'}
+            Редактировать анкету
           </button>
 
           <button
@@ -254,7 +255,7 @@ export function AccountScreen() {
             onClick={startEditingPost}
             className="px-4 py-3 rounded-fly-md bg-fly-glass backdrop-blur-fly-glass border border-fly-glass-border text-sm text-fly-ink text-left transition-opacity disabled:opacity-60"
           >
-            {loadingPost ? 'Загружаем…' : 'Изменить заметку'}
+            Изменить заметку
           </button>
 
           {/*
@@ -320,7 +321,7 @@ export function AccountScreen() {
                   onClick={() => setTheme(option.value)}
                   className={
                     theme === option.value
-                      ? 'flex-1 px-2 py-2 rounded-fly-sm text-xs font-semibold bg-fly-ink text-white transition-colors'
+                      ? 'flex-1 px-2 py-2 rounded-fly-sm text-xs font-semibold bg-fly-solid text-fly-solid-text transition-colors'
                       : 'flex-1 px-2 py-2 rounded-fly-sm text-xs font-semibold bg-fly-fog text-fly-gray transition-colors'
                   }
                 >

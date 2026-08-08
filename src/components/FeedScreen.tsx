@@ -106,7 +106,7 @@ export function FeedScreen() {
                 onClick={() => setActiveFilter(filter.id)}
                 className={
                   isActive
-                    ? 'px-4 py-2 rounded-full text-xs font-medium bg-fly-ink text-white whitespace-nowrap flex-shrink-0 transition-colors'
+                    ? 'px-4 py-2 rounded-full text-xs font-medium bg-fly-solid text-fly-solid-text whitespace-nowrap flex-shrink-0 transition-colors'
                     : 'px-4 py-2 rounded-full text-xs font-medium bg-fly-fog text-fly-gray whitespace-nowrap flex-shrink-0 transition-colors hover:bg-fly-fog-strong hover:text-fly-ink'
                 }
               >
@@ -127,7 +127,7 @@ export function FeedScreen() {
                   onClick={() => setActiveHobby(hobby.id)}
                   className={
                     isActive
-                      ? 'px-3 py-1.5 rounded-full text-[11px] font-medium bg-fly-ink text-white whitespace-nowrap flex-shrink-0 transition-colors'
+                      ? 'px-3 py-1.5 rounded-full text-[11px] font-medium bg-fly-solid text-fly-solid-text whitespace-nowrap flex-shrink-0 transition-colors'
                       : 'px-3 py-1.5 rounded-full text-[11px] font-medium bg-fly-fog text-fly-gray whitespace-nowrap flex-shrink-0 transition-colors hover:bg-fly-fog-strong hover:text-fly-ink'
                   }
                 >
@@ -145,7 +145,10 @@ export function FeedScreen() {
           "проваливается" никуда наружу. */}
       <div className="flex-1 overflow-y-auto overscroll-contain px-5">
         {loading ? (
-          <p className="text-center text-sm text-fly-gray py-10">Загружаем ленту…</p>
+          // Пусто, без текста "Загружаем..." - загрузка ленты обычно занимает
+          // доли секунды, надпись успевала бы только мигнуть и создавала
+          // ощущение подвисания вместо того, чтобы что-то объяснить.
+          <div className="h-full w-full" />
         ) : (
           // key={activeFilter} заставляет React пересобрать этот блок при смене фильтра,
           // а класс fade-in проигрывает плавное появление — вместо того чтобы карточки
