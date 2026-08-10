@@ -10,6 +10,12 @@
     <link rel="icon" href="/logo-source.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- Цвет строки браузера (адресная строка в обычной вкладке) - отдельный от
+         theme_color в manifest.webmanifest механизм (тот работает только для уже
+         установленного PWA) - без этого тега обычная вкладка в браузере (до
+         установки) показывала бы стандартный белый/системный цвет вместо тона
+         приложения. -->
+    <meta name="theme-color" content="#fff6f1" />
     <!--
       iOS ориентируется на эти теги сильнее, чем на manifest.webmanifest (тот
       в основном для Android/десктопных браузеров) - без них "Добавить на экран
