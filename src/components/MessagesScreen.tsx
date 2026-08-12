@@ -89,9 +89,12 @@ export function MessagesScreen() {
                       index.css), точного совпадения цвета уже не существует, поэтому
                       обводка - полупрозрачный тон фона (box-shadow, не border): он
                       достаточно близок к любому месту градиента, а не подогнан под
-                      один конкретный оттенок. */}
+                      один конкретный оттенок. fly-halo (не хардкод rgba) - меняется
+                      вместе с темой (см. index.css) - раньше тут был захардкожен
+                      именно светлый оттенок, в тёмной теме вокруг точки оставалось бы
+                      светлое гало вместо тёмного. */}
                   {isOnline && (
-                    <span className="absolute -right-0.5 -bottom-0.5 w-3.5 h-3.5 rounded-full bg-fly-online shadow-[0_0_0_2.5px_rgba(255,246,241,0.9)]" />
+                    <span className="absolute -right-0.5 -bottom-0.5 w-3.5 h-3.5 rounded-full bg-fly-online shadow-[0_0_0_2.5px_var(--color-fly-halo)]" />
                   )}
                 </div>
                 <div className="min-w-0 flex-1">

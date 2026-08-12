@@ -30,7 +30,15 @@
 
   /* --- Смысловые цвета --- */
   --color-fly-online: #3CCB7F;      /* "в сети" - один и тот же зелёный везде в приложении,
-                                        не зависит от темы (в приложении и нет тёмной темы) */
+                                        не зависит от темы (светлой/тёмной) - см. fly-halo ниже
+                                        про обводку вокруг него, та зависимость от темы уже есть. */
+  --color-fly-halo: rgba(255, 246, 241, 0.9); /* полупрозрачный тон ФОНА (не сам fly-bg
+                                        напрямую - это отдельное значение с уже вшитой
+                                        прозрачностью) - обводка вокруг зелёного "маячка
+                                        онлайн" на аватарке (см. MessagesScreen.tsx),
+                                        имитирует "вырез" в фоне под цвет того, что под
+                                        ним - должна меняться вместе с темой, иначе на
+                                        тёмном фоне вокруг точки останется светлое гало. */
   --color-fly-danger: #E5484D;      /* опасное/необратимое действие (кнопка "Заблокировать") -
                                         отдельный цвет от гендерного кораллового
                                         (fly-gender-female), чтобы не путать эти два смысла */
@@ -156,6 +164,7 @@ html, body, #root {
     --color-fly-fog-strong: #232A38;
     --color-fly-hairline: rgba(160, 190, 255, 0.08);
     --color-fly-bg: #060708;
+    --color-fly-halo: rgba(6, 7, 8, 0.9);
   }
   #root {
     background: linear-gradient(160deg, #0B0E16 0%, #060708 100%);
@@ -178,6 +187,7 @@ html, body, #root {
   --color-fly-fog-strong: #232A38;
   --color-fly-hairline: rgba(160, 190, 255, 0.08);
   --color-fly-bg: #060708;
+  --color-fly-halo: rgba(6, 7, 8, 0.9);
 }
 :root[data-theme='dark'] #root {
   background: linear-gradient(160deg, #0B0E16 0%, #060708 100%);
@@ -199,6 +209,7 @@ html, body, #root {
   --color-fly-fog-strong: #EFE6DE;
   --color-fly-hairline: #F1E7DF;
   --color-fly-bg: #FFF6F1;
+  --color-fly-halo: rgba(255, 246, 241, 0.9);
 }
 :root[data-theme='light'] #root {
   background:
