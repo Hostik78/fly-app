@@ -53,9 +53,15 @@ export function AccountScreen() {
   const [showHelp, setShowHelp] = useState(false)
   const [showBlocked, setShowBlocked] = useState(false)
   // Фото профиля - показываем сразу, оптимистично (публичный бакет, см. avatar.ts) -
-  // если файла на самом деле нет, <img onError> сам переключит на градиент-заглушку,
-  // отдельно спрашивать базу "есть ли фото" не нужно.
+  // отдельно спрашивать базу "есть ли фото" не нужно, но сам факт "фото ещё
+  // не подгрузилось" тоже нужно как-то отражать (см. avatarLoaded ниже) -
+  // раньше, пока шла попытка загрузить <img>, кружок на секунду оставался
+  // пустым, что ощущалось как "не сразу появляется".
   const [avatarBroken, setAvatarBroken] = useState(false)
+  // Подгрузилось ли настоящее фото - пока нет (или его вовсе нет), под ним
+  // всегда видна цветная заглушка (см. JSX ниже), фото просто аккуратно
+  // проявляется поверх неё, когда действительно готово - без паузы "пусто".
+  const [avatarLoaded, setAvatarLoaded] = useState(false)
   const [avatarVersion, setAvatarVersion] = useState(0)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [avatarError, setAvatarError] = useState<string | null>(null)
@@ -95,6 +101,9 @@ export function AccountScreen() {
     try {
       await uploadAvatar(currentUserId, file)
       setAvatarBroken(false)
+      // Новое фото ещё не подгрузилось в этот раз - пусть заново аккуратно
+      // проявится поверх заглушки, как и при самой первой загрузке страницы.
+      setAvatarLoaded(false)
       // Файл лежит по тому же адресу, что и раньше (перезаписан) - без смены
       // "версии" в ссылке браузер показал бы старую картинку из своего кеша.
       setAvatarVersion((version) => version + 1)
@@ -209,14 +218,21 @@ export function AccountScreen() {
             disabled={uploadingAvatar}
             className="relative w-20 h-20 rounded-full overflow-hidden transition-opacity disabled:opacity-60"
           >
-            {avatarBroken || !currentUserId ? (
-              <div className="w-full h-full bg-gradient-to-br from-fly-tint-accent to-fly-accent" />
-            ) : (
+            {/* Цветная заглушка - снизу и видна сразу же, без задержки. Настоящее
+                фото (если оно есть) - отдельным слоем поверх, невидимое (opacity-0),
+                пока по-настоящему не подгрузится (onLoad), и тогда плавно
+                проявляется. Если фото на самом деле нет (onError) - остаётся
+                просто невидимым, заглушка снизу так и продолжает быть видна. */}
+            <div className="absolute inset-0 bg-gradient-to-br from-fly-tint-accent to-fly-accent" />
+            {currentUserId && !avatarBroken && (
               <img
                 src={getAvatarUrl(currentUserId, avatarVersion)}
+                onLoad={() => setAvatarLoaded(true)}
                 onError={() => setAvatarBroken(true)}
                 alt="Фото профиля"
-                className="w-full h-full object-cover"
+                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${
+                  avatarLoaded ? 'opacity-100' : 'opacity-0'
+                }`}
               />
             )}
             {uploadingAvatar && (
