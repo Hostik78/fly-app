@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, lazy, type ReactNode } from 'react'
 import { HashRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { FeedScreen } from './components/FeedScreen'
 import { MessagesScreen } from './components/MessagesScreen'
@@ -23,12 +23,19 @@ import type { HobbyId } from './data/hobbies'
 // что живёт, пока не закрыта именно эта вкладка/сессия браузера, и обнуляется
 // при её закрытии - то есть "показать один раз за сессию", ровно то, что нужно.
 const LOADING_SCREEN_SHOWN_KEY = 'fly-loading-screen-shown'
-// Фиксированное время показа - не "ждём, пока видео точно доиграется", а
-// заранее известное число, чтобы поведение было предсказуемым и не зависело
-// от скорости интернета в моменте. Само видео (см. LoadingScreen.tsx) играет,
-// если успевает - если нет, экран всё равно закроется по расписанию, просто
-// без видимой анимации внутри (там же есть статичная картинка-заглушка).
+// Минимальное время показа нужно, чтобы даже при мгновенной загрузке заставка
+// не мелькала одним кадром. Если данные требуют больше времени, живая графика
+// продолжает двигаться сколько угодно и закрывается только после их готовности.
 const FIXED_LOADING_SCREEN_MS = 1400
+
+// Локальный режим просмотра заставки: позволяет дизайнеру спокойно оценить
+// бесконечное движение, не пытаясь поймать короткие 1,4 секунды настоящего
+// запуска. Работает только через npm run dev и полностью вырезается из сборки.
+const splashPreviewTheme = import.meta.env.DEV
+  ? new URLSearchParams(window.location.search).get('splash')
+  : null
+const isSplashPreview = splashPreviewTheme === 'light' || splashPreviewTheme === 'dark'
+if (isSplashPreview) document.documentElement.dataset.theme = splashPreviewTheme
 
 // lazy(...) - только AccountScreen: нужен не всем и не сразу (только по клику
 // на вкладку "Аккаунт"), поэтому его код браузер скачает отдельным кусочком,
@@ -143,6 +150,16 @@ function App() {
     return () => clearTimeout(timer)
   }, [shownBefore])
   const showLoadingScreen = overallLoading || !fixedTimeElapsed
+  // Заставка остаётся смонтированной ещё немного после готовности приложения,
+  // чтобы успеть плавно раствориться НАД уже открытым экраном, а не исчезнуть
+  // скачком перед тем, как React начнёт рисовать ленту.
+  const [loadingScreenMounted, setLoadingScreenMounted] = useState(true)
+  useEffect(() => {
+    if (showLoadingScreen) setLoadingScreenMounted(true)
+  }, [showLoadingScreen])
+  const handleLoadingScreenFinished = useCallback(() => {
+    setLoadingScreenMounted(false)
+  }, [])
 
   async function handleProfileSubmit(
     gender: 'male' | 'female' | null,
@@ -167,8 +184,11 @@ function App() {
     setHasPosted(true)
   }
 
-  const content = showLoadingScreen ? (
-    <LoadingScreen />
+  // Пока данные ещё неизвестны, под непрозрачной заставкой лежит нейтральный
+  // пустой слой. Как только данные готовы, настоящий экран монтируется сразу,
+  // а заставка ещё 650 мс мягко растворяется над ним.
+  const appContent = overallLoading ? (
+    <div className="h-full w-full bg-fly-bg" />
   ) : !session ? (
     <LoginScreen />
   ) : !hasProfile ? (
@@ -216,6 +236,22 @@ function App() {
         </Route>
       </Routes>
     </HashRouter>
+  )
+
+  const content = isSplashPreview ? (
+    <div className="relative h-full w-full overflow-hidden">
+      <LoadingScreen leaving={false} onFinished={() => {}} />
+    </div>
+  ) : (
+    <div className="relative h-full w-full overflow-hidden">
+      {appContent}
+      {(showLoadingScreen || loadingScreenMounted) && (
+        <LoadingScreen
+          leaving={!showLoadingScreen}
+          onFinished={handleLoadingScreenFinished}
+        />
+      )}
+    </div>
   )
 
   return import.meta.env.DEV ? <DevicePreview>{content}</DevicePreview> : content
