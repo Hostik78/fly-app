@@ -71,7 +71,7 @@ function RequireStatus({ hasPosted }: { hasPosted: boolean }) {
 function RequireAirport({ children }: { children: ReactNode }) {
   const { status, distanceKm, retry } = useAirportPresence()
   if (status === 'checking') return <div className="h-full w-full" />
-  if (status !== 'at-airport') {
+  if (status !== 'at-airport' && status !== 'test-access') {
     return <NotAtAirportScreen status={status} distanceKm={distanceKm} onRetry={retry} />
   }
   return <>{children}</>
