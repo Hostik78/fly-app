@@ -6,6 +6,7 @@ import { getAgeWord } from '../lib/pluralize'
 import { useConversation, type ChatMessage } from '../lib/useConversation'
 import { useTypingChannel } from '../lib/useTypingChannel'
 import { formatLastSeen } from '../lib/relativeTime'
+import { createSubmissionGuard } from '../lib/submissionGuard'
 import type { AppOutletContext } from './AppShell'
 import { BackArrowIcon, SendIcon, TypingDots } from './icons'
 import { Avatar } from './Avatar'
@@ -39,6 +40,8 @@ export function ChatScreen({ match, onBack, onBlock }: ChatScreenProps) {
 
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
+  // Сохраняем один защитный флаг на всё время жизни открытого чата.
+  const [submitOnce] = useState(createSubmissionGuard)
   const [error, setError] = useState<string | null>(null)
   const [showProfile, setShowProfile] = useState(false)
 
@@ -71,16 +74,22 @@ export function ChatScreen({ match, onBack, onBlock }: ChatScreenProps) {
   async function handleSend() {
     const text = draft.trim()
     if (!text) return
-    setSending(true)
-    setError(null)
-    try {
-      await sendMessage(text)
-      setDraft('')
-    } catch {
-      setError('Не получилось отправить. Проверьте интернет и попробуйте ещё раз.')
-    } finally {
-      setSending(false)
-    }
+    await submitOnce(async () => {
+      setSending(true)
+      setError(null)
+      try {
+        await sendMessage(text)
+        // Удаляем только тот черновик, который действительно отправили.
+        // Если текст уже изменился, новый вариант должен остаться в поле.
+        setDraft((current) => current === draft ? '' : current)
+      } catch {
+        // Причина может быть не только в сети: доступ к переписке тоже может
+        // измениться. Сохраняем текст и не обещаем неверный способ исправления.
+        setError('Не получилось отправить сообщение. Текст сохранён — попробуйте ещё раз.')
+      } finally {
+        setSending(false)
+      }
+    })
   }
 
   return (
@@ -167,6 +176,7 @@ export function ChatScreen({ match, onBack, onBlock }: ChatScreenProps) {
             <button
               key={text}
               type="button"
+              disabled={sending}
               onClick={() => setDraft(text)}
               className="text-left text-xs text-fly-ink bg-fly-fog rounded-fly-md px-3 py-2 whitespace-nowrap flex-shrink-0"
             >
@@ -182,12 +192,19 @@ export function ChatScreen({ match, onBack, onBlock }: ChatScreenProps) {
       <div className="flex-shrink-0 flex items-center gap-2 px-4 py-3 bg-fly-glass backdrop-blur-fly-glass border-t border-fly-glass-border">
         <input
           value={draft}
+          disabled={sending}
+          aria-label="Сообщение"
           onChange={(event) => {
             setDraft(event.target.value)
             notifyTyping()
           }}
           onKeyDown={(event) => {
-            if (event.key === 'Enter') handleSend()
+            // Enter при выборе символа экранной клавиатурой завершает ввод,
+            // а не отправляет ещё недописанное сообщение.
+            if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+              event.preventDefault()
+              void handleSend()
+            }
           }}
           placeholder="Написать сообщение..."
           className="flex-1 bg-fly-fog rounded-fly-md px-4 py-2.5 text-sm text-fly-ink outline-none border border-transparent focus:border-fly-accent"
@@ -195,6 +212,7 @@ export function ChatScreen({ match, onBack, onBlock }: ChatScreenProps) {
         {/* w-11 h-11 (44px) - минимальный удобный размер под палец (было 40px) */}
         <button
           onClick={handleSend}
+          aria-label="Отправить сообщение"
           disabled={!draft.trim() || sending}
           className="w-11 h-11 rounded-fly-md bg-fly-accent flex items-center justify-center flex-shrink-0 transition-opacity disabled:opacity-30"
         >

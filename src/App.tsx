@@ -141,22 +141,33 @@ function App() {
   // заново. Если это первый раз за вкладку - держим её ровно
   // FIXED_LOADING_SCREEN_MS, независимо от скорости интернета - и в любом
   // случае не меньше, чем реально нужно на проверку входа.
-  const [shownBefore] = useState(() => sessionStorage.getItem(LOADING_SCREEN_SHOWN_KEY) === '1')
+  const [shownBefore] = useState(() => {
+    // В приватном режиме доступ к хранилищу может быть запрещён. Заставка
+    // второстепенна: её отметка никогда не должна ломать запуск приложения.
+    try {
+      return sessionStorage.getItem(LOADING_SCREEN_SHOWN_KEY) === '1'
+    } catch {
+      return false
+    }
+  })
   const [fixedTimeElapsed, setFixedTimeElapsed] = useState(shownBefore)
   useEffect(() => {
     if (shownBefore) return
-    sessionStorage.setItem(LOADING_SCREEN_SHOWN_KEY, '1')
+    try {
+      sessionStorage.setItem(LOADING_SCREEN_SHOWN_KEY, '1')
+    } catch {
+      // При недоступном хранилище работаем без сохранения отметки.
+    }
     const timer = setTimeout(() => setFixedTimeElapsed(true), FIXED_LOADING_SCREEN_MS)
     return () => clearTimeout(timer)
   }, [shownBefore])
-  const showLoadingScreen = overallLoading || !fixedTimeElapsed
+  const showLoadingScreen = !shownBefore && (overallLoading || !fixedTimeElapsed)
   // Заставка остаётся смонтированной ещё немного после готовности приложения,
   // чтобы успеть плавно раствориться НАД уже открытым экраном, а не исчезнуть
   // скачком перед тем, как React начнёт рисовать ленту.
-  const [loadingScreenMounted, setLoadingScreenMounted] = useState(true)
-  useEffect(() => {
-    if (showLoadingScreen) setLoadingScreenMounted(true)
-  }, [showLoadingScreen])
+  // Только первый запуск создаёт графический слой. После его удаления новые
+  // проверки входа не возвращают заставку поверх уже открытого приложения.
+  const [loadingScreenMounted, setLoadingScreenMounted] = useState(!shownBefore)
   const handleLoadingScreenFinished = useCallback(() => {
     setLoadingScreenMounted(false)
   }, [])
@@ -245,7 +256,7 @@ function App() {
   ) : (
     <div className="relative h-full w-full overflow-hidden">
       {appContent}
-      {(showLoadingScreen || loadingScreenMounted) && (
+      {loadingScreenMounted && (
         <LoadingScreen
           leaving={!showLoadingScreen}
           onFinished={handleLoadingScreenFinished}
