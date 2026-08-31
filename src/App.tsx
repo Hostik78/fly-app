@@ -14,6 +14,7 @@ import { useAirportPresence } from './lib/useAirportPresence'
 import { supabase } from './lib/supabase'
 import type { ProfileCategory } from './data/profiles'
 import type { HobbyId } from './data/hobbies'
+import { isExistingProfileConflict } from './lib/profilePersistence'
 
 // Заставка с волнами (см. LoadingScreen.tsx) - только для настоящей первой
 // загрузки приложения за эту вкладку, не для каждого возврата в уже открытое
@@ -182,7 +183,10 @@ function App() {
     const { error } = await supabase
       .from('profiles')
       .insert({ user_id: session.user.id, gender, age, height, languages })
-    if (error) throw error
+    // Если первый запрос дошёл до базы, а ответ потерялся, повторный insert
+    // закономерно сообщает «такая анкета уже есть». Считаем это успехом, но
+    // НЕ обновляем строку: так временная ошибка чтения не затрёт старую анкету.
+    if (error && !isExistingProfileConflict(error)) throw error
     setHasProfile(true)
   }
 

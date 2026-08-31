@@ -9,6 +9,7 @@
 
 import { useState } from 'react'
 import { getLanguageName, languageOptions } from '../data/languages'
+import { createSubmissionGuard } from '../lib/submissionGuard'
 
 const MIN_AGE = 18
 const MAX_AGE = 99
@@ -58,6 +59,9 @@ export function ProfileSetupScreen({ initialValues, submitLabel, onCancel, onSub
   const [languageSearch, setLanguageSearch] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // disabled у кнопки обновляется только на следующей отрисовке React. Этот
+  // отдельный синхронный флаг не пропустит второй быстрый клик до неё.
+  const [submitOnce] = useState(createSubmissionGuard)
 
   const filteredLanguages = languageSearch.trim()
     ? languageOptions.filter((option) => option.name.toLowerCase().includes(languageSearch.trim().toLowerCase()))
@@ -70,20 +74,22 @@ export function ProfileSetupScreen({ initialValues, submitLabel, onCancel, onSub
   }
 
   async function handleSubmit() {
-    setSubmitting(true)
-    setError(null)
-    try {
-      await onSubmit(
-        gender,
-        ageInput === '' ? null : Number(ageInput),
-        heightInput === '' ? null : Number(heightInput),
-        selectedLanguages.length > 0 ? selectedLanguages.map(getLanguageName).join(', ') : null,
-      )
-    } catch {
-      setError('Не получилось сохранить. Проверьте интернет и попробуйте ещё раз.')
-    } finally {
-      setSubmitting(false)
-    }
+    await submitOnce(async () => {
+      setSubmitting(true)
+      setError(null)
+      try {
+        await onSubmit(
+          gender,
+          ageInput === '' ? null : Number(ageInput),
+          heightInput === '' ? null : Number(heightInput),
+          selectedLanguages.length > 0 ? selectedLanguages.map(getLanguageName).join(', ') : null,
+        )
+      } catch {
+        setError('Не получилось сохранить. Данные остались на месте — попробуйте ещё раз.')
+      } finally {
+        setSubmitting(false)
+      }
+    })
   }
 
   return (
@@ -205,13 +211,18 @@ export function ProfileSetupScreen({ initialValues, submitLabel, onCancel, onSub
 
         <div className="flex-1" />
 
-        {error && <p className="mt-4 text-xs text-fly-gray text-center">{error}</p>}
+        {/* Место под ошибку существует всегда: при повторной попытке текст может
+            исчезнуть, но кнопка больше не прыгает вверх-вниз. */}
+        <div className="mt-4 h-10 flex-shrink-0 flex items-center justify-center">
+          {error && <p className="text-xs text-fly-gray text-center">{error}</p>}
+        </div>
 
         <button
           type="button"
           disabled={submitting}
-          onClick={handleSubmit}
-          className="mt-8 w-full py-3.5 rounded-fly-md bg-fly-accent text-white font-semibold text-sm transition-opacity disabled:opacity-30"
+          aria-busy={submitting}
+          onClick={() => void handleSubmit()}
+          className="mt-4 w-full py-3.5 rounded-fly-md bg-fly-accent text-white font-semibold text-sm disabled:cursor-wait"
         >
           {submitting ? 'Сохраняем…' : (submitLabel ?? 'Продолжить')}
         </button>
