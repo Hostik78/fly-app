@@ -6,6 +6,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
+import { reportDatabaseReadError } from './databaseReadError'
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY as string
 
@@ -38,29 +39,40 @@ export function usePushNotifications(currentUserId: string | undefined): {
       return
     }
     setStatus(Notification.permission)
+    setError(null)
 
     let cancelled = false
-    navigator.serviceWorker.ready.then(async (registration) => {
-      const subscription = await registration.pushManager.getSubscription()
-      if (cancelled) return
-      setSubscribed(subscription !== null)
+    async function restoreSubscription() {
+      try {
+        const registration = await navigator.serviceWorker.ready
+        const subscription = await registration.pushManager.getSubscription()
+        if (cancelled) return
+        setSubscribed(subscription !== null)
 
-      // Браузер иногда сам, в фоне, обновляет endpoint подписки (например, из
-      // соображений безопасности) - без специального обработчика
-      // (pushsubscriptionchange) в самом service worker это осталось бы
-      // незамеченным до следующего ручного нажатия "Включить". Проще и надёжнее -
-      // молча сверять и досылать актуальный endpoint при каждом открытии
-      // приложения, раз оно и так уже открыто и вошло в аккаунт.
-      if (subscription && currentUserId) {
-        const json = subscription.toJSON()
-        await supabase
-          .from('push_subscriptions')
-          .upsert(
+        // Браузер иногда сам, в фоне, обновляет endpoint подписки (например, из
+        // соображений безопасности) - без специального обработчика
+        // (pushsubscriptionchange) в самом service worker это осталось бы
+        // незамеченным до следующего ручного нажатия "Включить". Проще и надёжнее -
+        // молча сверять и досылать актуальный endpoint при каждом открытии
+        // приложения, раз оно и так уже открыто и вошло в аккаунт.
+        if (subscription && currentUserId) {
+          const json = subscription.toJSON()
+          const { error: syncError } = await supabase
+            .from('push_subscriptions')
+            .upsert(
             { user_id: currentUserId, endpoint: json.endpoint!, p256dh: json.keys!.p256dh, auth: json.keys!.auth },
             { onConflict: 'endpoint' },
           )
+          if (syncError) throw syncError
+        }
+      } catch (caughtError) {
+        if (cancelled) return
+        reportDatabaseReadError('не удалось восстановить push-подписку', caughtError)
+        setSubscribed(false)
+        setError('Не удалось проверить уведомления. Попробуйте включить их ещё раз.')
       }
-    })
+    }
+    void restoreSubscription()
     return () => {
       cancelled = true
     }
@@ -110,12 +122,18 @@ export function usePushNotifications(currentUserId: string | undefined): {
     try {
       const registration = await navigator.serviceWorker.ready
       const subscription = await registration.pushManager.getSubscription()
-      if (!subscription) return
+      if (!subscription) {
+        setSubscribed(false)
+        return
+      }
 
       const endpoint = subscription.endpoint
       await subscription.unsubscribe()
-      await supabase.from('push_subscriptions').delete().eq('endpoint', endpoint)
+      // Браузер уже отписан — интерфейс обязан сразу отражать именно это,
+      // даже если последующая очистка устаревшей строки в базе не удалась.
       setSubscribed(false)
+      const { error: deleteError } = await supabase.from('push_subscriptions').delete().eq('endpoint', endpoint)
+      if (deleteError) throw deleteError
     } catch (caughtError) {
       console.error('push unsubscribe failed:', caughtError)
       setError('Не получилось выключить уведомления. Проверьте интернет и попробуйте ещё раз.')

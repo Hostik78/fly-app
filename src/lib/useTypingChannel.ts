@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from './supabase'
 import { TYPING_CLEAR_MS, typingChannelName } from './typingChannel'
 import type { RealtimeChannel } from '@supabase/supabase-js'
+import { reportDatabaseReadError } from './databaseReadError'
 
 // Не отправляем "печатаю" на каждое нажатие клавиши - достаточно не чаще,
 // чем раз в столько миллисекунд. Собеседник всё равно узнает об этом почти
@@ -42,7 +43,11 @@ export function useTypingChannel(
         if (clearTimerRef.current) clearTimeout(clearTimerRef.current)
         clearTimerRef.current = setTimeout(() => setTheyAreTyping(false), TYPING_CLEAR_MS)
       })
-      .subscribe()
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          reportDatabaseReadError('канал индикатора набора текста недоступен', { status })
+        }
+      })
     channelRef.current = channel
 
     return () => {

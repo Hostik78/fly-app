@@ -11,6 +11,7 @@ import { AIRPORT } from '../data/airport'
 export interface AppOutletContext {
   currentUserId: string
   onlineUserIds: Set<string>
+  presenceStatusKnown: boolean
 }
 
 interface AppShellProps {
@@ -22,7 +23,7 @@ interface AppShellProps {
 // место из React Router, куда подставляется нужный экран в зависимости от того,
 // какая вкладка выбрана: Лента / Сообщения / Аккаунт).
 export function AppShell({ currentUserId }: AppShellProps) {
-  const onlineUserIds = useOnlinePresence(currentUserId)
+  const { onlineIds: onlineUserIds, statusKnown: presenceStatusKnown } = useOnlinePresence(currentUserId)
 
   return (
     <div className="h-full w-full flex flex-col overflow-hidden">
@@ -48,7 +49,7 @@ export function AppShell({ currentUserId }: AppShellProps) {
           статуса и нижние вкладки), а не только сама вкладка. */}
       <div className="flex-1 overflow-hidden">
         <Suspense fallback={<div className="h-full w-full" />}>
-          <Outlet context={{ currentUserId, onlineUserIds } satisfies AppOutletContext} />
+          <Outlet context={{ currentUserId, onlineUserIds, presenceStatusKnown } satisfies AppOutletContext} />
         </Suspense>
       </div>
 

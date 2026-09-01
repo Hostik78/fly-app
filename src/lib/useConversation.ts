@@ -13,6 +13,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from './supabase'
 import type { Database } from './database.types'
+import { reportDatabaseReadError } from './databaseReadError'
 
 // Одно сообщение в переписке. from: 'them' - от собеседника, 'me' - от вас.
 // deliveredAt/readAt заполнены только у сообщений from: 'me' - у входящих
@@ -30,9 +31,22 @@ type MessageRow = Database['public']['Tables']['messages']['Row']
 export function useConversation(
   currentUserId: string | undefined,
   otherUserId: string | undefined,
-): { messages: ChatMessage[]; loading: boolean; sendMessage: (text: string) => Promise<void> } {
+): {
+  messages: ChatMessage[]
+  loading: boolean
+  error: boolean
+  liveError: boolean
+  retry: () => void
+  sendMessage: (text: string) => Promise<void>
+} {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+  const [liveError, setLiveError] = useState(false)
+  const [loadAttempt, setLoadAttempt] = useState(0)
+  // Запоминаем, для какой пары история уже хотя бы один раз успешно пришла.
+  // Повторное подключение Realtime тогда идёт фоном и не прячет сообщения.
+  const loadedConversationKeyRef = useRef<string | null>(null)
   // Нужен внутри слушателя visibilitychange, который живёт в отдельном
   // useEffect - ref, а не просто messages, чтобы не пересоздавать подписку
   // на каждое изменение списка сообщений.
@@ -41,11 +55,30 @@ export function useConversation(
 
   useEffect(() => {
     if (!currentUserId || !otherUserId) {
+      setError(false)
+      setLiveError(false)
       setLoading(false)
       return
     }
+    const conversationKey = `${currentUserId}:${otherUserId}`
+    const historyWasLoaded = loadedConversationKeyRef.current === conversationKey
+    if (!historyWasLoaded) setMessages([])
     let cancelled = false
-    setLoading(true)
+    setLoading(!historyWasLoaded)
+    setError(false)
+    setLiveError(false)
+
+    function fail(context: string, cause: unknown) {
+      reportDatabaseReadError(context, cause)
+      if (!cancelled) {
+        // Если история уже была на экране, временная ошибка повторного REST-
+        // чтения не должна её скрывать. Показываем небольшое предупреждение о
+        // соединении рядом с сохранившимися сообщениями.
+        if (historyWasLoaded) setLiveError(true)
+        else setError(true)
+        setLoading(false)
+      }
+    }
 
     // Помечает delivered_at (и, если вкладка видна и в фокусе, read_at) для
     // ЧУЖИХ сообщений мне, которые ещё не отмечены - вызывается и при первой
@@ -57,10 +90,11 @@ export function useConversation(
 
       const undelivered = rows.filter((row) => !row.delivered_at).map((row) => row.id)
       if (undelivered.length > 0) {
-        await supabase
+        const { error } = await supabase
           .from('messages')
           .update(isVisible ? { delivered_at: now, read_at: now } : { delivered_at: now })
           .in('id', undelivered)
+        if (error) reportDatabaseReadError('не удалось обновить статус доставки сообщения', error)
       }
 
       // Доставлено раньше, но прочитано только сейчас (вкладка была свёрнута,
@@ -70,7 +104,8 @@ export function useConversation(
       // условия delivered_at/!delivered_at), доп. проверку на пересечение не пишем.
       const deliveredButUnread = rows.filter((row) => row.delivered_at && !row.read_at).map((row) => row.id)
       if (isVisible && deliveredButUnread.length > 0) {
-        await supabase.from('messages').update({ read_at: now }).in('id', deliveredButUnread)
+        const { error } = await supabase.from('messages').update({ read_at: now }).in('id', deliveredButUnread)
+        if (error) reportDatabaseReadError('не удалось обновить статус прочтения сообщения', error)
       }
     }
 
@@ -112,19 +147,33 @@ export function useConversation(
           )
         },
       )
-      .subscribe()
-
-    supabase
-      .from('messages')
-      .select('id, sender_id, text, created_at, delivered_at, read_at')
-      .or(
-        `and(sender_id.eq.${currentUserId},recipient_id.eq.${otherUserId}),` +
-          `and(sender_id.eq.${otherUserId},recipient_id.eq.${currentUserId})`,
-      )
-      .order('created_at', { ascending: true })
-      .then(({ data }) => {
+      .subscribe((status) => {
         if (cancelled) return
+        if (status === 'SUBSCRIBED') {
+          setLiveError(false)
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          reportDatabaseReadError('не удалось подключить живые обновления переписки', { status })
+          setLiveError(true)
+        }
+      })
+
+    async function loadHistory() {
+      try {
+        const { data, error } = await supabase
+          .from('messages')
+          .select('id, sender_id, text, created_at, delivered_at, read_at')
+          .or(
+            `and(sender_id.eq.${currentUserId},recipient_id.eq.${otherUserId}),` +
+              `and(sender_id.eq.${otherUserId},recipient_id.eq.${currentUserId})`,
+          )
+          .order('created_at', { ascending: true })
+        if (cancelled) return
+        if (error) {
+          fail('не удалось загрузить историю переписки', error)
+          return
+        }
         const rows = data ?? []
+        loadedConversationKeyRef.current = conversationKey
         const fetchedIds = new Set(rows.map((row) => row.id))
         setMessages((current) => {
           // current тут - только то, что успело прилететь живьём ДО того, как
@@ -147,7 +196,11 @@ export function useConversation(
 
         const theirRows = rows.filter((row) => row.sender_id === otherUserId)
         if (theirRows.length > 0) void markReceived(theirRows)
-      })
+      } catch (cause) {
+        fail('неожиданная ошибка загрузки переписки', cause)
+      }
+    }
+    void loadHistory()
 
     // Вкладка вернулась в фокус - у уже показанных чужих сообщений могло быть
     // "доставлено", но не "просмотрено" (пришли, пока вкладка была свёрнута) -
@@ -165,7 +218,7 @@ export function useConversation(
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       supabase.removeChannel(channel)
     }
-  }, [currentUserId, otherUserId])
+  }, [currentUserId, otherUserId, loadAttempt])
 
   async function sendMessage(text: string) {
     if (!currentUserId || !otherUserId) return
@@ -178,5 +231,12 @@ export function useConversation(
     setMessages((current) => [...current, { id: data.id, text: data.text, from: 'me', deliveredAt: null, readAt: null }])
   }
 
-  return { messages, loading, sendMessage }
+  return {
+    messages,
+    loading,
+    error,
+    liveError,
+    retry: () => setLoadAttempt((attempt) => attempt + 1),
+    sendMessage,
+  }
 }

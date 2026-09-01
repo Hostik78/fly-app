@@ -11,26 +11,46 @@ import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
 import type { Profile, ProfileCategory } from '../data/profiles'
 import type { HobbyId } from '../data/hobbies'
+import { firstDatabaseReadError, reportDatabaseReadError } from './databaseReadError'
 
 export function useBlockedUsers(currentUserId: string | undefined): {
   blocked: Profile[]
   loading: boolean
+  error: boolean
+  retry: () => void
   unblock: (userId: string) => Promise<void>
 } {
   const [blocked, setBlocked] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+  const [loadAttempt, setLoadAttempt] = useState(0)
 
   useEffect(() => {
     if (!currentUserId) {
+      setError(false)
       setLoading(false)
       return
     }
     const userId = currentUserId
     let cancelled = false
     setLoading(true)
+    setError(false)
+
+    function fail(context: string, cause: unknown) {
+      reportDatabaseReadError(context, cause)
+      if (!cancelled) {
+        setError(true)
+        setLoading(false)
+      }
+    }
 
     async function load() {
-      const { data: blockedRows } = await supabase.from('blocked_users').select('blocked_id').eq('blocker_id', userId)
+      const blockedResult = await supabase.from('blocked_users').select('blocked_id').eq('blocker_id', userId)
+      if (blockedResult.error) {
+        fail('не удалось загрузить список блокировок', blockedResult.error)
+        return
+      }
+      const blockedRows = blockedResult.data
       const blockedIds = (blockedRows ?? []).map((row) => row.blocked_id)
 
       if (blockedIds.length === 0) {
@@ -41,10 +61,17 @@ export function useBlockedUsers(currentUserId: string | undefined): {
         return
       }
 
-      const [{ data: posts }, { data: profileRows }] = await Promise.all([
+      const [postsResult, profilesResult] = await Promise.all([
         supabase.from('posts').select('user_id, quote, category, hobby').in('user_id', blockedIds),
         supabase.from('profiles').select('user_id, gender, age, height, languages').in('user_id', blockedIds),
       ])
+      const detailError = firstDatabaseReadError(postsResult, profilesResult)
+      if (detailError) {
+        fail('не удалось загрузить анкеты заблокированных', detailError)
+        return
+      }
+      const posts = postsResult.data
+      const profileRows = profilesResult.data
 
       const postByUserId = new Map((posts ?? []).map((row) => [row.user_id, row]))
       const infoByUserId = new Map((profileRows ?? []).map((row) => [row.user_id, row]))
@@ -71,11 +98,11 @@ export function useBlockedUsers(currentUserId: string | undefined): {
       }
     }
 
-    load()
+    load().catch((cause: unknown) => fail('неожиданная ошибка загрузки блокировок', cause))
     return () => {
       cancelled = true
     }
-  }, [currentUserId])
+  }, [currentUserId, loadAttempt])
 
   // Разблокировать - удаляет свою же строку (RLS разрешает удалять только
   // собственные блокировки, см. blocked_users_delete_own) и убирает человека
@@ -87,5 +114,11 @@ export function useBlockedUsers(currentUserId: string | undefined): {
     setBlocked((current) => current.filter((profile) => profile.id !== userId))
   }
 
-  return { blocked, loading, unblock }
+  return {
+    blocked,
+    loading,
+    error,
+    retry: () => setLoadAttempt((attempt) => attempt + 1),
+    unblock,
+  }
 }

@@ -7,6 +7,7 @@ import type { AppOutletContext } from './AppShell'
 import type { Profile } from '../data/profiles'
 import { useMatches } from '../lib/useMatches'
 import { useTypingStatus } from '../lib/useTypingStatus'
+import { LoadErrorState } from './LoadErrorState'
 
 // ChatScreen открывается не сразу, а только по клику на конкретное совпадение -
 // поэтому его код тоже грузим отдельным кусочком (см. подробное объяснение lazy(...) в App.tsx).
@@ -16,7 +17,7 @@ const ChatScreen = lazy(() => import('./ChatScreen').then((m) => ({ default: m.C
 // на любое из них - открывает переписку с этим человеком (см. ChatScreen).
 export function MessagesScreen() {
   const { currentUserId, onlineUserIds } = useOutletContext<AppOutletContext>()
-  const { matches, loading, blockMatch } = useMatches(currentUserId)
+  const { matches, loading, error, retry, blockMatch } = useMatches(currentUserId)
 
   // Какое совпадение сейчас открыто как переписка. null - показываем список.
   const [openMatch, setOpenMatch] = useState<Profile | null>(null)
@@ -57,6 +58,10 @@ export function MessagesScreen() {
       {loading ? (
         // Пусто, без текста "Загружаем..." - см. тот же приём в FeedScreen.tsx.
         <div className="flex-1" />
+      ) : error ? (
+        <div className="flex-1">
+          <LoadErrorState onRetry={retry} />
+        </div>
       ) : matches.length === 0 ? (
         // Пустое состояние по центру - совпадений пока нет
         <div className="flex-1 flex flex-col items-center justify-center gap-3 px-10 text-center">

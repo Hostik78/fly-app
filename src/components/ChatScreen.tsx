@@ -11,6 +11,7 @@ import type { AppOutletContext } from './AppShell'
 import { BackArrowIcon, SendIcon, TypingDots } from './icons'
 import { Avatar } from './Avatar'
 import { ProfileDetailSheet } from './ProfileDetailSheet'
+import { LoadErrorState } from './LoadErrorState'
 
 interface ChatScreenProps {
   match: Profile
@@ -34,8 +35,15 @@ function messageStatusLabel(message: ChatMessage): string {
 // а вид, который MessagesScreen показывает вместо списка, когда выбрано совпадение -
 // так проще, чем заводить новый URL-путь ради одного экрана.
 export function ChatScreen({ match, onBack, onBlock }: ChatScreenProps) {
-  const { currentUserId, onlineUserIds } = useOutletContext<AppOutletContext>()
-  const { messages: dbMessages, loading, sendMessage } = useConversation(currentUserId, match.id)
+  const { currentUserId, onlineUserIds, presenceStatusKnown } = useOutletContext<AppOutletContext>()
+  const {
+    messages: dbMessages,
+    loading,
+    error: loadingError,
+    liveError,
+    retry,
+    sendMessage,
+  } = useConversation(currentUserId, match.id)
   const { theyAreTyping, notifyTyping } = useTypingChannel(currentUserId, match.id)
 
   const [draft, setDraft] = useState('')
@@ -50,7 +58,7 @@ export function ChatScreen({ match, onBack, onBlock }: ChatScreenProps) {
   // Пока не загрузили - список пуст (не мигаем заглушкой раньше времени). Если
   // загрузили и настоящих сообщений нет - показываем фразу из анкеты как будто
   // это первое сообщение (не сохраняется в базу, только для показа).
-  const messages: ChatMessage[] = loading
+  const messages: ChatMessage[] = loading || loadingError
     ? []
     : dbMessages.length > 0
       ? dbMessages
@@ -133,6 +141,8 @@ export function ChatScreen({ match, onBack, onBlock }: ChatScreenProps) {
                 <span className="w-1.5 h-1.5 rounded-full bg-fly-online" />
                 Онлайн
               </div>
+            ) : !presenceStatusKnown ? (
+              <div className="text-xs text-fly-gray">Статус временно недоступен</div>
             ) : (
               <div className="text-xs text-fly-gray">
                 {match.lastSeenAt ? formatLastSeen(match.lastSeenAt, match.gender) : 'Не в сети'}
@@ -144,6 +154,13 @@ export function ChatScreen({ match, onBack, onBlock }: ChatScreenProps) {
 
       {/* Лента сообщений: прокручивается независимо от шапки и поля ввода */}
       <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 flex flex-col gap-2.5">
+        {loadingError && (
+          <LoadErrorState
+            compact
+            onRetry={retry}
+            title="Не удалось загрузить переписку"
+          />
+        )}
         {messages.map((message) => (
           <div key={message.id} className={`flex flex-col ${message.from === 'me' ? 'items-end' : 'items-start'}`}>
             <div
@@ -159,6 +176,18 @@ export function ChatScreen({ match, onBack, onBlock }: ChatScreenProps) {
             )}
           </div>
         ))}
+
+        {/* История уже загружена и остаётся видимой. Ошибка Realtime означает
+            только то, что новые сообщения могут не появиться сами прямо сейчас;
+            поэтому это небольшое предупреждение, а не пустой экран чата. */}
+        {liveError && !loadingError && (
+          <div role="status" className="self-center max-w-xs rounded-fly-md bg-fly-fog px-4 py-3 text-center text-xs text-fly-gray">
+            Живые обновления временно недоступны.{' '}
+            <button type="button" onClick={retry} className="font-semibold text-fly-accent">
+              Переподключиться
+            </button>
+          </div>
+        )}
 
         {/* Пузырёк с точками - живое ощущение, что человек прямо сейчас пишет ответ,
             а не просто статус текстом где-то в шапке */}

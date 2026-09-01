@@ -21,6 +21,7 @@ import { BlockedAccountsScreen } from './BlockedAccountsScreen'
 import type { AppOutletContext } from './AppShell'
 import type { ProfileCategory } from '../data/profiles'
 import type { HobbyId } from '../data/hobbies'
+import { reportDatabaseReadError } from '../lib/databaseReadError'
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: 'system', label: 'Как в телефоне' },
@@ -41,15 +42,26 @@ interface PostRow {
   hobby: HobbyId | null
 }
 
+type EditingTarget = 'profile' | 'post'
+
 export function AccountScreen() {
   const { currentUserId } = useOutletContext<AppOutletContext>()
-  const { count: likedByCount } = useLikedByCount(currentUserId)
+  const {
+    count: likedByCount,
+    loading: loadingLikedByCount,
+    error: likedByCountError,
+    retry: retryLikedByCount,
+  } = useLikedByCount(currentUserId)
   const pushNotifications = usePushNotifications(currentUserId)
   const { theme, setTheme } = useTheme()
   const [profile, setProfile] = useState<ProfileRow | null>(null)
-  const [loadingProfile, setLoadingProfile] = useState(false)
   const [post, setPost] = useState<PostRow | null>(null)
-  const [loadingPost, setLoadingPost] = useState(false)
+  const [loadingEditor, setLoadingEditor] = useState<EditingTarget | null>(null)
+  const [editingLoadError, setEditingLoadError] = useState<{ target: EditingTarget; message: string } | null>(null)
+  // Защищает от устаревшего ответа, если два действия всё же успели начаться
+  // почти одновременно до следующего кадра React: открыть экран может только
+  // последний запрос, а обе кнопки блокируются общим loadingEditor.
+  const editingRequestRef = useRef(0)
   const [showHelp, setShowHelp] = useState(false)
   const [showBlocked, setShowBlocked] = useState(false)
   // Фото профиля - показываем сразу, оптимистично (публичный бакет, см. avatar.ts) -
@@ -119,17 +131,34 @@ export function AccountScreen() {
   }
 
   async function startEditingProfile() {
-    setLoadingProfile(true)
-    const { data } = await supabase
-      .from('profiles')
-      .select('gender, age, height, languages')
-      .eq('user_id', currentUserId)
-      .maybeSingle()
-    // gender в сгенерированных типах базы - просто "string" (Postgres не показывает
-    // TypeScript-у сами значения check-ограничения) - приводим к настоящему,
-    // более узкому типу, который база и так гарантирует.
-    setProfile((data as ProfileRow | null) ?? { gender: null, age: null, height: null, languages: null })
-    setLoadingProfile(false)
+    const requestId = ++editingRequestRef.current
+    setLoadingEditor('profile')
+    setEditingLoadError(null)
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('gender, age, height, languages')
+        .eq('user_id', currentUserId)
+        .maybeSingle()
+      if (error || !data) {
+        reportDatabaseReadError('не удалось открыть анкету для редактирования', error ?? 'profile not found')
+        if (requestId === editingRequestRef.current) {
+          setEditingLoadError({ target: 'profile', message: 'Не удалось загрузить анкету.' })
+        }
+        return
+      }
+      // gender в сгенерированных типах базы - просто "string" (Postgres не показывает
+      // TypeScript-у сами значения check-ограничения) - приводим к настоящему,
+      // более узкому типу, который база и так гарантирует.
+      if (requestId === editingRequestRef.current) setProfile(data as ProfileRow)
+    } catch (error) {
+      reportDatabaseReadError('неожиданная ошибка загрузки анкеты', error)
+      if (requestId === editingRequestRef.current) {
+        setEditingLoadError({ target: 'profile', message: 'Не удалось загрузить анкету.' })
+      }
+    } finally {
+      if (requestId === editingRequestRef.current) setLoadingEditor(null)
+    }
   }
 
   async function handleUpdateProfile(
@@ -147,16 +176,33 @@ export function AccountScreen() {
   }
 
   async function startEditingPost() {
-    setLoadingPost(true)
-    const { data } = await supabase
-      .from('posts')
-      .select('quote, category, hobby')
-      .eq('user_id', currentUserId)
-      .maybeSingle()
-    // category/hobby в сгенерированных типах базы - просто "string" - тот же случай,
-    // что и с gender в startEditingProfile выше.
-    if (data) setPost(data as PostRow)
-    setLoadingPost(false)
+    const requestId = ++editingRequestRef.current
+    setLoadingEditor('post')
+    setEditingLoadError(null)
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('quote, category, hobby')
+        .eq('user_id', currentUserId)
+        .maybeSingle()
+      if (error || !data) {
+        reportDatabaseReadError('не удалось открыть заметку для редактирования', error ?? 'post not found')
+        if (requestId === editingRequestRef.current) {
+          setEditingLoadError({ target: 'post', message: 'Не удалось загрузить заметку.' })
+        }
+        return
+      }
+      // category/hobby в сгенерированных типах базы - просто "string" - тот же случай,
+      // что и с gender в startEditingProfile выше.
+      if (requestId === editingRequestRef.current) setPost(data as PostRow)
+    } catch (error) {
+      reportDatabaseReadError('неожиданная ошибка загрузки заметки', error)
+      if (requestId === editingRequestRef.current) {
+        setEditingLoadError({ target: 'post', message: 'Не удалось загрузить заметку.' })
+      }
+    } finally {
+      if (requestId === editingRequestRef.current) setLoadingEditor(null)
+    }
   }
 
   async function handleUpdatePost(quote: string, category: ProfileCategory, hobby: HobbyId | null) {
@@ -258,7 +304,7 @@ export function AccountScreen() {
         <div className="flex flex-col gap-2">
           <button
             type="button"
-            disabled={loadingProfile}
+            disabled={loadingEditor !== null}
             onClick={startEditingProfile}
             className="px-4 py-3 rounded-fly-md bg-fly-glass backdrop-blur-fly-glass border border-fly-glass-border text-sm text-fly-ink text-left transition-opacity disabled:opacity-60"
           >
@@ -267,12 +313,25 @@ export function AccountScreen() {
 
           <button
             type="button"
-            disabled={loadingPost}
+            disabled={loadingEditor !== null}
             onClick={startEditingPost}
             className="px-4 py-3 rounded-fly-md bg-fly-glass backdrop-blur-fly-glass border border-fly-glass-border text-sm text-fly-ink text-left transition-opacity disabled:opacity-60"
           >
             Изменить заметку
           </button>
+
+          {editingLoadError && (
+            <div role="alert" className="flex items-center justify-between gap-3 px-1 text-xs text-fly-gray">
+              <span>{editingLoadError.message}</span>
+              <button
+                type="button"
+                onClick={editingLoadError.target === 'profile' ? startEditingProfile : startEditingPost}
+                className="flex-shrink-0 font-semibold text-fly-accent"
+              >
+                Повторить
+              </button>
+            </div>
+          )}
 
           {/*
             "Кто меня лайкнул" - показываем только ЧИСЛО, без имён (см. useLikedByCount) -
@@ -283,7 +342,17 @@ export function AccountScreen() {
           */}
           <div className="px-4 py-3 rounded-fly-md bg-fly-glass backdrop-blur-fly-glass border border-fly-glass-border text-sm text-fly-ink flex items-center justify-between">
             <span>Кто меня лайкнул</span>
-            {likedByCount > 0 && (
+            {loadingLikedByCount ? (
+              <span className="text-xs font-semibold text-fly-gray">…</span>
+            ) : likedByCountError ? (
+              <button
+                type="button"
+                onClick={retryLikedByCount}
+                className="text-xs font-semibold text-fly-accent"
+              >
+                Повторить
+              </button>
+            ) : likedByCount > 0 && (
               <span className="text-xs font-bold text-white bg-fly-accent min-w-[20px] px-2 py-0.5 rounded-full text-center">
                 {likedByCount}
               </span>

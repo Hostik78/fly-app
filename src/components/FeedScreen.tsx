@@ -7,6 +7,7 @@ import { ProfileCard } from './ProfileCard'
 import type { AppOutletContext } from './AppShell'
 import { useFeedProfiles } from '../lib/useFeedProfiles'
 import { supabase } from '../lib/supabase'
+import { LoadErrorState } from './LoadErrorState'
 
 // Одна запись фильтра: id - для сравнения в коде, label - что видит пользователь.
 // 'all' не привязан ни к какой категории анкеты - это режим "показать всё".
@@ -33,7 +34,7 @@ export function FeedScreen() {
   // currentUserId пришёл из AppShell через контекст маршрута - нужен, чтобы запросить
   // ленту без своей же собственной публикации.
   const { currentUserId, onlineUserIds } = useOutletContext<AppOutletContext>()
-  const { profiles, loading, markLiked, hideProfile, blockProfile } = useFeedProfiles(currentUserId)
+  const { profiles, loading, error, retry, markLiked, hideProfile, blockProfile } = useFeedProfiles(currentUserId)
 
   // Сохраняет лайк в базу. ProfileCard сам показывает "лайкнуто" сразу (оптимистично)
   // и откатывает обратно, если это не получилось - здесь сам поход в базу и обновление
@@ -149,6 +150,8 @@ export function FeedScreen() {
           // доли секунды, надпись успевала бы только мигнуть и создавала
           // ощущение подвисания вместо того, чтобы что-то объяснить.
           <div className="h-full w-full" />
+        ) : error ? (
+          <LoadErrorState onRetry={retry} />
         ) : (
           // key={activeFilter} заставляет React пересобрать этот блок при смене фильтра,
           // а класс fade-in проигрывает плавное появление — вместо того чтобы карточки
