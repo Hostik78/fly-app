@@ -10,6 +10,7 @@ import { categories } from '../data/categories'
 import { getAgeWord } from '../lib/pluralize'
 import { Avatar } from './Avatar'
 import { BackArrowIcon } from './icons'
+import { LoadErrorState } from './LoadErrorState'
 
 interface BlockedAccountsScreenProps {
   currentUserId: string | undefined
@@ -17,7 +18,7 @@ interface BlockedAccountsScreenProps {
 }
 
 export function BlockedAccountsScreen({ currentUserId, onBack }: BlockedAccountsScreenProps) {
-  const { blocked, loading, unblock } = useBlockedUsers(currentUserId)
+  const { blocked, loading, error, retry, unblock } = useBlockedUsers(currentUserId)
   const [search, setSearch] = useState('')
   const [ageMin, setAgeMin] = useState('')
   const [ageMax, setAgeMax] = useState('')
@@ -78,7 +79,7 @@ export function BlockedAccountsScreen({ currentUserId, onBack }: BlockedAccounts
 
       {/* Фильтр показываем, только если вообще есть кого фильтровать - на
           пустом списке строка поиска и диапазоны были бы бесполезным мусором. */}
-      {blocked.length > 0 && (
+      {!error && blocked.length > 0 && (
         <div className="flex-shrink-0 flex flex-col gap-2 px-5 pb-3">
           <input
             value={search}
@@ -132,6 +133,10 @@ export function BlockedAccountsScreen({ currentUserId, onBack }: BlockedAccounts
       {loading ? (
         // Пусто, без текста "Загружаем..." - см. тот же приём в FeedScreen.tsx.
         <div className="flex-1" />
+      ) : error ? (
+        <div className="flex-1">
+          <LoadErrorState onRetry={retry} />
+        </div>
       ) : blocked.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-2 px-10 text-center">
           <p className="text-sm text-fly-gray leading-relaxed">Заблокированных пока нет.</p>

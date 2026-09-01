@@ -12,23 +12,47 @@ import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
 import type { Profile, ProfileCategory } from '../data/profiles'
 import type { HobbyId } from '../data/hobbies'
+import { firstDatabaseReadError, reportDatabaseReadError } from './databaseReadError'
 
 export function useMatches(
   currentUserId: string | undefined,
-): { matches: Profile[]; loading: boolean; blockMatch: (userId: string) => Promise<void> } {
+): {
+  matches: Profile[]
+  loading: boolean
+  error: boolean
+  retry: () => void
+  blockMatch: (userId: string) => Promise<void>
+} {
   const [matches, setMatches] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+  const [loadAttempt, setLoadAttempt] = useState(0)
 
   useEffect(() => {
     if (!currentUserId) {
+      setError(false)
       setLoading(false)
       return
     }
     let cancelled = false
     setLoading(true)
+    setError(false)
+
+    function fail(context: string, cause: unknown) {
+      reportDatabaseReadError(context, cause)
+      if (!cancelled) {
+        setError(true)
+        setLoading(false)
+      }
+    }
 
     async function load() {
-      const { data: matchRows } = await supabase.rpc('get_match_user_ids')
+      const matchResult = await supabase.rpc('get_match_user_ids')
+      if (matchResult.error) {
+        fail('не удалось загрузить список совпадений', matchResult.error)
+        return
+      }
+      const matchRows = matchResult.data
       const matchUserIds = (matchRows ?? []).map((row) => row.user_id)
 
       if (matchUserIds.length === 0) {
@@ -39,10 +63,17 @@ export function useMatches(
         return
       }
 
-      const [{ data: posts }, { data: profileRows }] = await Promise.all([
+      const [postsResult, profilesResult] = await Promise.all([
         supabase.from('posts').select('user_id, quote, category, hobby, created_at').in('user_id', matchUserIds),
         supabase.from('profiles').select('user_id, gender, age, height, languages, last_seen_at').in('user_id', matchUserIds),
       ])
+      const detailError = firstDatabaseReadError(postsResult, profilesResult)
+      if (detailError) {
+        fail('не удалось загрузить данные совпадений', detailError)
+        return
+      }
+      const posts = postsResult.data
+      const profileRows = profilesResult.data
 
       const infoByUserId = new Map((profileRows ?? []).map((row) => [row.user_id, row]))
 
@@ -68,11 +99,11 @@ export function useMatches(
       }
     }
 
-    load()
+    load().catch((cause: unknown) => fail('неожиданная ошибка загрузки совпадений', cause))
     return () => {
       cancelled = true
     }
-  }, [currentUserId])
+  }, [currentUserId, loadAttempt])
 
   // "Заблокировать" из открытого чата (см. ChatScreen.tsx/ProfileDetailSheet.tsx) -
   // сохраняет блокировку (её сразу учтёт get_match_user_ids выше при следующей
@@ -85,5 +116,11 @@ export function useMatches(
     setMatches((current) => current.filter((profile) => profile.id !== userId))
   }
 
-  return { matches, loading, blockMatch }
+  return {
+    matches,
+    loading,
+    error,
+    retry: () => setLoadAttempt((attempt) => attempt + 1),
+    blockMatch,
+  }
 }

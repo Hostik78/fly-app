@@ -7,6 +7,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
 import { TYPING_CLEAR_MS, typingChannelName } from './typingChannel'
+import { reportDatabaseReadError } from './databaseReadError'
 
 export function useTypingStatus(currentUserId: string | undefined, matchIds: string[]): Set<string> {
   const [typingIds, setTypingIds] = useState<Set<string>>(new Set())
@@ -41,7 +42,11 @@ export function useTypingStatus(currentUserId: string | undefined, matchIds: str
             }, TYPING_CLEAR_MS),
           )
         })
-        .subscribe()
+        .subscribe((status) => {
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            reportDatabaseReadError('канал статуса набора текста в списке недоступен', { status, otherId })
+          }
+        })
       return channel
     })
 

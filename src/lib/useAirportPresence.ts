@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react'
 import { getDistanceKm } from './geo'
 import { AIRPORT } from '../data/airport'
 import { supabase } from './supabase'
+import { reportDatabaseReadError } from './databaseReadError'
 
 export type AirportPresenceStatus =
   | 'checking'
@@ -36,8 +37,17 @@ export function useAirportPresence(): {
     async function checkAccessThenLocation() {
       // Проверку срока выполняет наш сервер своими часами. При любой сетевой
       // ошибке не открываем тестовый режим, а переходим к обычной геолокации.
-      const { data: sessionData } = await supabase.auth.getSession()
-      const token = sessionData.session?.access_token
+      let token: string | undefined
+      try {
+        const { data: sessionData, error } = await supabase.auth.getSession()
+        if (error) reportDatabaseReadError('не удалось проверить сессию для тестового доступа', error)
+        token = sessionData.session?.access_token
+      } catch (error) {
+        // Тестовый доступ - только дополнительный путь для закрытой проверки.
+        // Его сбой не должен навсегда оставлять обычного пользователя на пустом
+        // экране: продолжаем к стандартной геолокации ниже.
+        reportDatabaseReadError('неожиданная ошибка проверки тестового доступа', error)
+      }
       let testAccess = false
       if (token) {
         try {

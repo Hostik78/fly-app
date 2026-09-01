@@ -15,6 +15,8 @@ import { supabase } from './lib/supabase'
 import type { ProfileCategory } from './data/profiles'
 import type { HobbyId } from './data/hobbies'
 import { isExistingProfileConflict } from './lib/profilePersistence'
+import { firstDatabaseReadError, reportDatabaseReadError } from './lib/databaseReadError'
+import { LoadErrorState } from './components/LoadErrorState'
 
 // Заставка с волнами (см. LoadingScreen.tsx) - только для настоящей первой
 // загрузки приложения за эту вкладку, не для каждого возврата в уже открытое
@@ -91,7 +93,7 @@ function RequireAirport({ children }: { children: ReactNode }) {
 // (вместе с самим импортом DevicePreview) Vite вообще не включает в сборку -
 // человек на своём телефоне видит просто настоящий экран приложения, без рамки.
 function App() {
-  const { session, loading } = useSession()
+  const { session, loading, error: sessionError, retry: retrySession } = useSession()
   const [hasProfile, setHasProfile] = useState(false)
   const [hasPosted, setHasPosted] = useState(false)
   // Пока не знаем ни то, ни другое - показываем общий экран загрузки (см.
@@ -100,14 +102,19 @@ function App() {
   // друга, обеим нужен только session.user.id, поэтому нет смысла ждать одну
   // по очереди с другой.
   const [accountLoading, setAccountLoading] = useState(true)
+  const [accountError, setAccountError] = useState(false)
+  const [accountLoadAttempt, setAccountLoadAttempt] = useState(0)
+  const currentUserId = session?.user.id
 
   useEffect(() => {
-    if (!session) {
+    if (!currentUserId) {
+      setAccountError(false)
       setAccountLoading(false)
       return
     }
     let cancelled = false
     setAccountLoading(true)
+    setAccountError(false)
     // Сбрасываем на "нет анкеты/публикации", пока не пришёл ответ - иначе при
     // смене аккаунта в другой открытой вкладке (Supabase синхронизирует вход
     // через localStorage) на долю секунды могли бы остаться данные предыдущего
@@ -116,20 +123,31 @@ function App() {
     setHasPosted(false)
 
     Promise.all([
-      supabase.from('profiles').select('user_id').eq('user_id', session.user.id).maybeSingle(),
-      supabase.from('posts').select('id').eq('user_id', session.user.id).maybeSingle(),
+      supabase.from('profiles').select('user_id').eq('user_id', currentUserId).maybeSingle(),
+      supabase.from('posts').select('id').eq('user_id', currentUserId).maybeSingle(),
     ]).then(([profileResult, postResult]) => {
-      if (!cancelled) {
-        setHasProfile(!!profileResult.data)
-        setHasPosted(!!postResult.data)
+      if (cancelled) return
+      const error = firstDatabaseReadError(profileResult, postResult)
+      if (error) {
+        reportDatabaseReadError('не удалось проверить анкету и заметку при входе', error)
+        setAccountError(true)
         setAccountLoading(false)
+        return
       }
+      setHasProfile(!!profileResult.data)
+      setHasPosted(!!postResult.data)
+      setAccountLoading(false)
+    }).catch((error: unknown) => {
+      if (cancelled) return
+      reportDatabaseReadError('неожиданная ошибка проверки аккаунта', error)
+      setAccountError(true)
+      setAccountLoading(false)
     })
 
     return () => {
       cancelled = true
     }
-  }, [session?.user.id])
+  }, [currentUserId, accountLoadAttempt])
 
   // Общая проверка "загрузки" перед показом приложения: сначала проверяем вход,
   // потом (уже войдя) анкету и публикацию разом.
@@ -204,8 +222,15 @@ function App() {
   // а заставка ещё 650 мс мягко растворяется над ним.
   const appContent = overallLoading ? (
     <div className="h-full w-full bg-fly-bg" />
+  ) : sessionError ? (
+    <LoadErrorState
+      onRetry={retrySession}
+      title="Не удалось проверить вход"
+    />
   ) : !session ? (
     <LoginScreen />
+  ) : accountError ? (
+    <LoadErrorState onRetry={() => setAccountLoadAttempt((attempt) => attempt + 1)} />
   ) : !hasProfile ? (
     <ProfileSetupScreen onSubmit={handleProfileSubmit} />
   ) : (

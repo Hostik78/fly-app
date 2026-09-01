@@ -17,6 +17,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
 import type { Profile, ProfileCategory } from '../data/profiles'
 import type { HobbyId } from '../data/hobbies'
+import { firstDatabaseReadError, reportDatabaseReadError } from './databaseReadError'
 
 const NEW_THRESHOLD_MS = 60 * 60 * 1000 // час
 
@@ -25,15 +26,20 @@ export function useFeedProfiles(
 ): {
   profiles: Profile[]
   loading: boolean
+  error: boolean
+  retry: () => void
   markLiked: (userId: string) => void
   hideProfile: (userId: string) => Promise<void>
   blockProfile: (userId: string) => Promise<void>
 } {
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+  const [loadAttempt, setLoadAttempt] = useState(0)
 
   useEffect(() => {
     if (!currentUserId) {
+      setError(false)
       setLoading(false)
       return
     }
@@ -42,23 +48,44 @@ export function useFeedProfiles(
     const userId = currentUserId
     let cancelled = false
     setLoading(true)
+    setError(false)
+
+    function fail(context: string, cause: unknown) {
+      reportDatabaseReadError(context, cause)
+      if (!cancelled) {
+        setError(true)
+        setLoading(false)
+      }
+    }
 
     async function load() {
       // Лимит "сколько последних заметок" теперь внутри самой get_feed_posts()
       // (см. миграцию) - без него лента однажды скачивала бы все публикации
       // всех пользователей сразу, и чем больше людей в приложении, тем медленнее
       // она открывалась бы у каждого.
-      const [{ data: posts }, { data: myLikes }] = await Promise.all([
+      const [postsResult, likesResult] = await Promise.all([
         supabase.rpc('get_feed_posts'),
         supabase.from('likes').select('liked_id').eq('liker_id', userId),
       ])
+      const initialError = firstDatabaseReadError(postsResult, likesResult)
+      if (initialError) {
+        fail('не удалось загрузить ленту и лайки', initialError)
+        return
+      }
+      const posts = postsResult.data
+      const myLikes = likesResult.data
       const likedIds = new Set((myLikes ?? []).map((row) => row.liked_id))
 
       const userIds = (posts ?? []).map((post) => post.user_id)
-      const { data: profileRows } =
-        userIds.length > 0
-          ? await supabase.from('profiles').select('user_id, gender, age, height, languages').in('user_id', userIds)
-          : { data: [] }
+      let profileRows: Awaited<ReturnType<typeof loadProfiles>>['data'] = []
+      if (userIds.length > 0) {
+        const profileResult = await loadProfiles(userIds)
+        if (profileResult.error) {
+          fail('не удалось загрузить анкеты для ленты', profileResult.error)
+          return
+        }
+        profileRows = profileResult.data
+      }
 
       const infoByUserId = new Map((profileRows ?? []).map((row) => [row.user_id, row]))
       const now = Date.now()
@@ -85,11 +112,15 @@ export function useFeedProfiles(
       }
     }
 
-    load()
+    function loadProfiles(userIds: string[]) {
+      return supabase.from('profiles').select('user_id, gender, age, height, languages').in('user_id', userIds)
+    }
+
+    load().catch((cause: unknown) => fail('неожиданная ошибка загрузки ленты', cause))
     return () => {
       cancelled = true
     }
-  }, [currentUserId])
+  }, [currentUserId, loadAttempt])
 
   // Отмечает человека лайкнутым в уже загруженном списке - вызывается снаружи
   // (FeedScreen.tsx) сразу после того, как лайк по-настоящему сохранился в базу.
@@ -123,5 +154,13 @@ export function useFeedProfiles(
     setProfiles((current) => current.filter((profile) => profile.id !== userId))
   }
 
-  return { profiles, loading, markLiked, hideProfile, blockProfile }
+  return {
+    profiles,
+    loading,
+    error,
+    retry: () => setLoadAttempt((attempt) => attempt + 1),
+    markLiked,
+    hideProfile,
+    blockProfile,
+  }
 }
