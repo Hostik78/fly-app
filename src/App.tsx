@@ -17,15 +17,15 @@ import type { HobbyId } from './data/hobbies'
 import { isExistingProfileConflict } from './lib/profilePersistence'
 import { firstDatabaseReadError, reportDatabaseReadError } from './lib/databaseReadError'
 import { LoadErrorState } from './components/LoadErrorState'
+import { consumeLoadingSkipAfterAutoUpdate } from './lib/loadingLifecycle'
 
-// Заставка с волнами (см. LoadingScreen.tsx) - только для настоящей первой
-// загрузки приложения за эту вкладку, не для каждого возврата в уже открытое
-// приложение (заблокировали/разблокировали телефон, переключились на другое
-// приложение и вернулись обратно - это не перезагрузка страницы вообще, React
-// и так остаётся в памяти, эта логика тут ни при чём). sessionStorage - то,
-// что живёт, пока не закрыта именно эта вкладка/сессия браузера, и обнуляется
-// при её закрытии - то есть "показать один раз за сессию", ровно то, что нужно.
-const LOADING_SCREEN_SHOWN_KEY = 'fly-loading-screen-shown'
+// Заставка с волнами (см. LoadingScreen.tsx) создаётся один раз на каждый
+// настоящий запуск документа. Поэтому обычная перезагрузка страницы и новый
+// запуск приложения после выгрузки из памяти снова показывают волны. А быстрое
+// переключение в Telegram, блокировка телефона или возврат в уже живую вкладку
+// ничего не перемонтируют — React остаётся в памяти, и заставка не появляется.
+// Отдельная отметка в sessionStorage здесь не нужна и даже вредна: это хранилище
+// переживает Command+R, поэтому прежняя логика ошибочно пропускала новый запуск.
 // Минимальное время показа нужно, чтобы даже при мгновенной загрузке заставка
 // не мелькала одним кадром. Если данные требуют больше времени, живая графика
 // продолжает двигаться сколько угодно и закрывается только после их готовности.
@@ -153,40 +153,24 @@ function App() {
   // потом (уже войдя) анкету и публикацию разом.
   const overallLoading = loading || (!!session && accountLoading)
 
-  // Показывать ли заставку с волнами прямо сейчас - см. константы выше. Если
-  // уже показывали в этой вкладке (например, человек просто вернулся из
-  // другого приложения, а не реально перезагрузил страницу) - не ждём вообще
-  // ничего сверх настоящих данных (overallLoading), заставка не появится
-  // заново. Если это первый раз за вкладку - держим её ровно
-  // FIXED_LOADING_SCREEN_MS, независимо от скорости интернета - и в любом
-  // случае не меньше, чем реально нужно на проверку входа.
-  const [shownBefore] = useState(() => {
-    // В приватном режиме доступ к хранилищу может быть запрещён. Заставка
-    // второстепенна: её отметка никогда не должна ломать запуск приложения.
-    try {
-      return sessionStorage.getItem(LOADING_SCREEN_SHOWN_KEY) === '1'
-    } catch {
-      return false
-    }
-  })
-  const [fixedTimeElapsed, setFixedTimeElapsed] = useState(shownBefore)
+  // На каждом новом запуске документа держим заставку минимум заданное время.
+  // Если проверка входа/анкеты требует больше времени, волны продолжают жить
+  // до готовности настоящих данных — пустой экран между ними и приложением не
+  // появляется.
+  const [skipLoadingAfterAutoUpdate] = useState(consumeLoadingSkipAfterAutoUpdate)
+  const [fixedTimeElapsed, setFixedTimeElapsed] = useState(skipLoadingAfterAutoUpdate)
   useEffect(() => {
-    if (shownBefore) return
-    try {
-      sessionStorage.setItem(LOADING_SCREEN_SHOWN_KEY, '1')
-    } catch {
-      // При недоступном хранилище работаем без сохранения отметки.
-    }
+    if (skipLoadingAfterAutoUpdate) return
     const timer = setTimeout(() => setFixedTimeElapsed(true), FIXED_LOADING_SCREEN_MS)
     return () => clearTimeout(timer)
-  }, [shownBefore])
-  const showLoadingScreen = !shownBefore && (overallLoading || !fixedTimeElapsed)
+  }, [skipLoadingAfterAutoUpdate])
+  const showLoadingScreen = !skipLoadingAfterAutoUpdate && (overallLoading || !fixedTimeElapsed)
   // Заставка остаётся смонтированной ещё немного после готовности приложения,
   // чтобы успеть плавно раствориться НАД уже открытым экраном, а не исчезнуть
   // скачком перед тем, как React начнёт рисовать ленту.
-  // Только первый запуск создаёт графический слой. После его удаления новые
-  // проверки входа не возвращают заставку поверх уже открытого приложения.
-  const [loadingScreenMounted, setLoadingScreenMounted] = useState(!shownBefore)
+  // После растворения слой окончательно удаляется до конца жизни этого
+  // документа. Обычные перерисовки и возврат вкладки в фокус его не создают.
+  const [loadingScreenMounted, setLoadingScreenMounted] = useState(!skipLoadingAfterAutoUpdate)
   const handleLoadingScreenFinished = useCallback(() => {
     setLoadingScreenMounted(false)
   }, [])

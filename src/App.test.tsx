@@ -14,17 +14,23 @@ vi.mock('./components/DevicePreview', () => ({
 
 afterEach(() => vi.unstubAllGlobals())
 
-async function renderStartup(shownBefore: boolean, storageBlocked = false) {
+async function renderStartup(
+  { legacyShown = false, skipAfterAutoUpdate = false, storageBlocked = false } = {},
+) {
+  const storedValues = new Map<string, string>()
+  if (legacyShown) storedValues.set('fly-loading-screen-shown', '1')
+  if (skipAfterAutoUpdate) storedValues.set('fly-skip-loading-after-auto-update', '1')
   vi.stubGlobal('window', {
     location: { search: '' },
     matchMedia: () => ({ matches: false }),
   })
   vi.stubGlobal('document', { documentElement: { dataset: {} } })
   vi.stubGlobal('sessionStorage', {
-    getItem: () => {
+    getItem: (key: string) => {
       if (storageBlocked) throw new Error('Storage disabled')
-      return shownBefore ? '1' : null
+      return storedValues.get(key) ?? null
     },
+    removeItem: (key: string) => storedValues.delete(key),
   })
   const { default: App } = await import('./App')
   return renderToString(<App />)
@@ -32,14 +38,22 @@ async function renderStartup(shownBefore: boolean, storageBlocked = false) {
 
 describe('первый кадр запуска', () => {
   it('показывает волны при первом запуске', async () => {
-    expect(await renderStartup(false)).toContain('<canvas')
+    expect(await renderStartup()).toContain('<canvas')
   })
 
-  it('не создаёт волны повторно, даже пока вход ещё проверяется', async () => {
-    expect(await renderStartup(true)).not.toContain('<canvas')
+  it('снова показывает волны после настоящей перезагрузки страницы', async () => {
+    // sessionStorage переживает Command+R. Старая реализация принимала эту
+    // отметку за «приложение всё ещё открыто» и поэтому пропускала заставку.
+    // Но сам факт нового монтирования App уже означает новый запуск документа:
+    // быстрый возврат из Telegram вообще не размонтирует React и сюда не попадёт.
+    expect(await renderStartup({ legacyShown: true })).toContain('<canvas')
+  })
+
+  it('не показывает волны после скрытого автообновления приложения', async () => {
+    expect(await renderStartup({ skipAfterAutoUpdate: true })).not.toContain('<canvas')
   })
 
   it('не падает, если браузер запретил хранение состояния вкладки', async () => {
-    await expect(renderStartup(false, true)).resolves.toContain('<canvas')
+    await expect(renderStartup({ storageBlocked: true })).resolves.toContain('<canvas')
   })
 })

@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { applyTheme, getStoredTheme } from './lib/theme'
+import { markLoadingSkipAfterAutoUpdate } from './lib/loadingLifecycle'
 
 // Применяем выбранную тему (см. lib/theme.ts) максимально рано, до того как
 // React вообще начнёт что-либо рисовать - если ждать, пока сам компонент
@@ -55,6 +56,11 @@ if ('serviceWorker' in navigator) {
   function reloadOnce() {
     if (reloaded) return
     reloaded = true
+    // Это не ручной перезапуск приложения, а незаметное обновление уже живой
+    // вкладки в фоне. Оставляем одноразовую метку, чтобы после этой конкретной
+    // перезагрузки не встречать человека заставкой при возврате. Command+R и
+    // холодный запуск такую метку не создают и всегда показывают волны.
+    markLoadingSkipAfterAutoUpdate()
     window.location.reload()
   }
   navigator.serviceWorker.addEventListener('controllerchange', () => {
