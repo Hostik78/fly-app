@@ -66,8 +66,8 @@ export function CreateStatusScreen({ initialValues, submitLabel, onCancel, onSub
       <div
         className="flex-1 overflow-y-auto overscroll-contain px-6 flex flex-col"
         style={{
-          paddingTop: 'calc(3rem + env(safe-area-inset-top))',
-          paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))',
+          paddingTop: 'calc(3rem + var(--fly-safe-top))',
+          paddingBottom: 'calc(1.5rem + var(--fly-safe-bottom))',
         }}
       >
         <div className="text-xl font-semibold mb-1">

@@ -5,6 +5,37 @@ import App from './App.tsx'
 import { applyTheme, getStoredTheme } from './lib/theme'
 import { markLoadingSkipAfterAutoUpdate } from './lib/loadingLifecycle'
 
+// Подготовка двух dev-документов до первого кадра: внешний документ становится
+// рабочей областью симулятора, внутренний iframe получает безопасные зоны выбранной
+// модели. В production весь блок удаляется Vite вместе со строками и стилями стенда.
+if (import.meta.env.DEV) {
+  const previewParams = new URLSearchParams(window.location.search)
+  if (previewParams.has('device-preview')) {
+    for (const side of ['top', 'right', 'bottom', 'left'] as const) {
+      const rawValue = Number(previewParams.get(`preview-safe-${side}`))
+      const safeValue = Number.isFinite(rawValue) ? Math.min(100, Math.max(0, rawValue)) : 0
+      document.documentElement.style.setProperty(`--fly-safe-${side}`, `${safeValue}px`)
+    }
+  } else if (window.matchMedia('(pointer: fine)').matches) {
+    const root = document.getElementById('root')!
+    Object.assign(document.body.style, { display: 'block', overflow: 'hidden' })
+    Object.assign(root.style, {
+      width: '100%',
+      height: '100%',
+      maxWidth: 'none',
+      maxHeight: 'none',
+      aspectRatio: 'auto',
+      overflow: 'hidden',
+      borderRadius: '0',
+      boxShadow: 'none',
+    })
+    // Псевдоэлемент production-рамки нельзя выключить через inline style самого #root.
+    const previewReset = document.createElement('style')
+    previewReset.textContent = '#root::before{display:none!important}'
+    document.head.append(previewReset)
+  }
+}
+
 // Применяем выбранную тему (см. lib/theme.ts) максимально рано, до того как
 // React вообще начнёт что-либо рисовать - если ждать, пока сам компонент
 // экрана Аккаунта или App.tsx это сделает, при вручную выбранной тёмной теме

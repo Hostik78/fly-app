@@ -1,99 +1,200 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import {
+  buildDevicePreviewUrl,
+  calculateFitScale,
+  DEVICE_PRESETS,
+  getDevicePreset,
+  type DeviceCutout,
+} from '../lib/devicePreview'
+import { setStoredTheme, type ThemePreference } from '../lib/theme'
+import './DevicePreview.css'
 
-// Какой вырез экрана у устройства — это ДАННЫЕ, а не отдельная логика под каждую модель.
-// 'none' - нет выреза, 'dynamic-island' - плавающая таблетка (iPhone 14 Pro/15+)
-type CutoutType = 'none' | 'notch' | 'dynamic-island' | 'punch-hole'
+const DEVICE_STORAGE_KEY = 'fly-preview-device'
+const BEZEL = 12
 
-// Фиксированный размер рамки предпросмотра - без выпадающего списка моделей и кнопок зума,
-// просто один разумный размер по умолчанию (iPhone 14 Pro / 15).
-const DEVICE = { width: 393, height: 852, cutout: 'dynamic-island' as CutoutType }
+type Zoom = 'fit' | 0.75 | 1
 
-// Границы зума для жеста pinch-to-zoom трекпадом (кнопок для этого больше нет,
-// но жест двумя пальцами по-прежнему работает)
-const ZOOM_MIN = 50
-const ZOOM_MAX = 150
-
-interface DevicePreviewProps {
-  children: ReactNode // то, что показываем внутри рамки телефона (экран приложения)
+function readStoredDeviceId(): string {
+  try {
+    return localStorage.getItem(DEVICE_STORAGE_KEY) ?? ''
+  } catch {
+    return ''
+  }
 }
 
-// Рисует вырез экрана нужной формы.
-// Размеры и отступы — реальные величины из спеки Apple (не подобраны на глаз),
-// см. LESSONS.md "Реальные размеры выреза экрана" для источника и деталей.
-function DeviceCutout({ cutout }: { cutout: CutoutType }) {
-  if (cutout === 'notch') {
-    // Классический вырез (iPhone X–13 mini/SE3 не в счёт, у них его нет):
-    // врезан вплотную в верхний край экрана, без зазора сверху.
-    return <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[160px] h-[30px] bg-black rounded-b-2xl z-10" />
-  }
-  if (cutout === 'dynamic-island') {
-    // Dynamic Island (iPhone 14 Pro/15/16 Pro-и-не-только): 126×37pt,
-    // "плавает" с отступом 11pt от верхнего края экрана (это не пересекает статус-бар,
-    // а сидит внутри safe area) — в предыдущей версии было заметно меньше и выше положенного.
-    return <div className="absolute top-[11px] left-1/2 -translate-x-1/2 w-[126px] h-[37px] bg-black rounded-full z-10" />
-  }
-  if (cutout === 'punch-hole') {
-    return <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-black rounded-full z-10" />
-  }
+function readAppliedTheme(root: HTMLElement = document.documentElement): ThemePreference {
+  const applied = root.dataset.theme
+  return applied === 'light' || applied === 'dark' ? applied : 'system'
+}
+
+function DeviceCutout({ cutout }: { cutout: DeviceCutout }) {
+  if (cutout === 'notch') return <div aria-hidden="true" className="preview-cutout preview-cutout--notch" />
+  if (cutout === 'dynamic-island') return <div aria-hidden="true" className="preview-cutout preview-cutout--island" />
+  if (cutout === 'punch-hole') return <div aria-hidden="true" className="preview-cutout preview-cutout--punch" />
   return null
 }
 
-// DevicePreview — это НЕ часть самого приложения, а инструмент для удобной разработки:
-// просто рамка телефона вокруг экрана. Когда придёт время публиковать готовое приложение
-// для настоящих пользователей, эту обёртку можно будет просто убрать, оставив <FeedScreen />.
-export function DevicePreview({ children }: DevicePreviewProps) {
-  const [zoom, setZoom] = useState(100)
-  // Ссылка на обёртку рамки телефона - именно на ней ловим жест pinch-to-zoom
-  const frameWrapperRef = useRef<HTMLDivElement>(null)
-  const scale = zoom / 100
+// Это не «десктопная версия Fly», а локальный стенд проверки мобильного приложения.
+// Сам Fly загружается в iframe: у него действительно меняются window.innerWidth,
+// window.innerHeight и CSS media queries, как в выбранном смартфоне. Простая рамка-div
+// этого не умеет и лишь создаёт похожую картинку, поэтому здесь нужна изоляция документа.
+export function DevicePreview() {
+  const [deviceId, setDeviceId] = useState(readStoredDeviceId)
+  const [theme, setTheme] = useState<ThemePreference>(readAppliedTheme)
+  const [zoom, setZoom] = useState<Zoom>('fit')
+  const [frameHash, setFrameHash] = useState(window.location.hash)
+  const [windowSize, setWindowSize] = useState(() => ({ width: window.innerWidth, height: window.innerHeight }))
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+  const frameThemeObserverRef = useRef<MutationObserver | null>(null)
+  const device = getDevicePreset(deviceId)
+  const fitScale = calculateFitScale({ viewportWidth: windowSize.width, viewportHeight: windowSize.height, device })
+  const scale = zoom === 'fit' ? fitScale : zoom
 
-  // Жест "сжать/разжать двумя пальцами" на трекпаде macOS браузер передаёт как обычное
-  // колесо мыши (wheel), но с зажатой клавишей Ctrl. Слушаем такие события и вместо
-  // прокрутки страницы меняем зум рамки.
   useEffect(() => {
-    const frameWrapper = frameWrapperRef.current
-    if (!frameWrapper) return
-
-    function handleWheel(event: WheelEvent) {
-      if (!event.ctrlKey) return
-      event.preventDefault()
-      setZoom((current) => {
-        const next = Math.round(current - event.deltaY)
-        return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, next))
-      })
+    function handleResize() {
+      setWindowSize({ width: window.innerWidth, height: window.innerHeight })
     }
-
-    frameWrapper.addEventListener('wheel', handleWheel, { passive: false })
-    return () => frameWrapper.removeEventListener('wheel', handleWheel)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
   }, [])
 
+  useEffect(() => () => frameThemeObserverRef.current?.disconnect(), [])
+
+  function chooseDevice(nextId: string) {
+    // HashRouter хранит текущий раздел после #. Сохраняем hash внутреннего Fly,
+    // чтобы смена iPhone на Android не выкидывала разработчика обратно на входной маршрут.
+    const currentFrameHash = iframeRef.current?.contentWindow?.location.hash
+    if (currentFrameHash) setFrameHash(currentFrameHash)
+    setDeviceId(nextId)
+    setZoom('fit')
+    try {
+      localStorage.setItem(DEVICE_STORAGE_KEY, nextId)
+    } catch {
+      // В приватном режиме сохранение может быть запрещено. Выбор продолжает
+      // работать до перезагрузки, поэтому dev-инструмент не должен падать.
+    }
+  }
+
+  function chooseTheme(nextTheme: ThemePreference) {
+    setTheme(nextTheme)
+    setStoredTheme(nextTheme)
+
+    // iframe того же локального origin, поэтому тему можно применить без перезапуска
+    // приложения и повторной заставки. При следующей загрузке её подхватит localStorage.
+    const frameRoot = iframeRef.current?.contentDocument?.documentElement
+    if (!frameRoot) return
+    if (nextTheme === 'system') delete frameRoot.dataset.theme
+    else frameRoot.dataset.theme = nextTheme
+  }
+
+  const frameWidth = device.width + BEZEL * 2
+  const frameHeight = device.height + BEZEL * 2
+  const frameBaseUrl = new URL(window.location.href)
+  frameBaseUrl.hash = frameHash
+  const frameUrl = buildDevicePreviewUrl(frameBaseUrl.href, device)
+
+  function handleFrameLoad() {
+    const frameRoot = iframeRef.current?.contentDocument?.documentElement
+    const frameWindow = iframeRef.current?.contentWindow
+    if (!frameRoot || !frameWindow) return
+    // Браузер сначала создаёт технический about:blank и только потом открывает src.
+    // Его пустой hash нельзя принимать за маршрут Fly — иначе #/messages потеряется
+    // ещё до настоящей загрузки iframe.
+    if (!new URLSearchParams(frameWindow.location.search).has('device-preview')) return
+
+    setTheme(readAppliedTheme(frameRoot))
+    setFrameHash(frameWindow.location.hash)
+    frameThemeObserverRef.current?.disconnect()
+    const observer = new MutationObserver(() => setTheme(readAppliedTheme(frameRoot)))
+    observer.observe(frameRoot, { attributes: true, attributeFilter: ['data-theme'] })
+    frameThemeObserverRef.current = observer
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-fly-bg">
-      {/* Внешняя обёртка размером точно под текущий масштаб — нужна, чтобы после
-          трансформации рамка занимала на странице ровно столько места, сколько видно глазами */}
-      <div
-        ref={frameWrapperRef}
-        style={{ width: DEVICE.width * scale, height: DEVICE.height * scale }}
-        className="relative"
-      >
-        <div
-          style={{
-            width: DEVICE.width,
-            height: DEVICE.height,
-            transform: `scale(${scale})`,
-            transformOrigin: 'top left',
-            willChange: 'transform',
-          }}
-          className="absolute top-0 left-0 bg-black rounded-[54px] p-3 shadow-[0_30px_60px_rgba(30,40,70,0.18)]"
-        >
-          {/* relative тут обязательно: вырез позиционируется от края ЭКРАНА (белого прямоугольника),
-              а не от края чёрной рамки — иначе отступ p-3 рамки будет каждый раз сбивать позицию выреза */}
-          <div className="relative w-full h-full rounded-[42px] overflow-hidden bg-white">
-            <DeviceCutout cutout={DEVICE.cutout} />
-            {children}
+    <div className="preview-studio">
+      <header className="preview-toolbar">
+        <div className="preview-toolbar__controls">
+          <label className="preview-visually-hidden" htmlFor="preview-device">Модель телефона</label>
+          <select
+            id="preview-device"
+            aria-label="Модель телефона"
+            value={device.id}
+            onChange={(event) => chooseDevice(event.target.value)}
+            className="preview-select preview-select--device"
+          >
+            {DEVICE_PRESETS.map((preset) => (
+              <option key={preset.id} value={preset.id}>
+                {preset.label} · {preset.width}×{preset.height}
+              </option>
+            ))}
+          </select>
+
+          <span aria-hidden="true" className="preview-divider" />
+
+          <label className="preview-visually-hidden" htmlFor="preview-theme">Тема приложения</label>
+          <select
+            id="preview-theme"
+            aria-label="Тема приложения"
+            value={theme}
+            onChange={(event) => chooseTheme(event.target.value as ThemePreference)}
+            className="preview-select preview-select--theme"
+          >
+            <option value="system">Как в системе</option>
+            <option value="light">Светлая</option>
+            <option value="dark">Тёмная</option>
+          </select>
+
+          <span aria-hidden="true" className="preview-divider" />
+
+          <div className="preview-zoom" aria-label="Масштаб предпросмотра">
+            {([['fit', 'Вместить'], [0.75, '75%'], [1, '100%']] as const).map(([value, label]) => (
+              <button
+                key={String(value)}
+                type="button"
+                aria-pressed={zoom === value}
+                onClick={() => setZoom(value)}
+                className="preview-zoom__button"
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
-      </div>
+      </header>
+
+      <main className="preview-workspace">
+        <div className="preview-workspace__canvas">
+          <div
+            className="preview-frame-wrapper"
+            style={{ width: frameWidth * scale, height: frameHeight * scale }}
+          >
+            <div
+              data-preview-device={device.id}
+              data-preview-width={device.width}
+              data-preview-height={device.height}
+              className="preview-phone"
+              style={{
+                width: frameWidth,
+                height: frameHeight,
+                borderRadius: device.screenRadius + BEZEL,
+                transform: `scale(${scale})`,
+              }}
+            >
+              <div className="preview-screen" style={{ borderRadius: device.screenRadius }}>
+                <iframe
+                  ref={iframeRef}
+                  key={device.id}
+                  src={frameUrl}
+                  title={`Fly на ${device.label}`}
+                  className="preview-iframe"
+                  onLoad={handleFrameLoad}
+                />
+                <DeviceCutout cutout={device.cutout} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
   )
 }

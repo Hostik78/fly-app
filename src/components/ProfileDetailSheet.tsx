@@ -26,7 +26,7 @@ export function ProfileDetailSheet({ profile, online, onClose, onBlock }: Profil
 
       {/* Обёртка снизу экрана - safe-area-bottom нужен (нижний край реального
           телефона), safe-area-top не нужен (шторка не подходит к самому верху) */}
-      <div className="relative w-full max-w-[480px] pb-[calc(1.5rem+env(safe-area-inset-bottom))] px-4 pt-16">
+      <div className="relative w-full max-w-[480px] pb-[calc(1.5rem+var(--fly-safe-bottom))] px-4 pt-16">
         <ProfileCard profile={profile} online={online} onBlock={onBlock} />
         {/* Кнопка закрытия - ПОСЛЕ карточки в разметке (значит, поверх нее при
             наложении), с запасом (-mt на самой карточке нет места под неё,

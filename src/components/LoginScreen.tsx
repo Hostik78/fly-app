@@ -41,8 +41,8 @@ export function LoginScreen() {
       <div
         className="h-full w-full flex flex-col items-center justify-center gap-4 px-8 text-center"
         style={{
-          paddingTop: 'calc(1rem + env(safe-area-inset-top))',
-          paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))',
+          paddingTop: 'calc(1rem + var(--fly-safe-top))',
+          paddingBottom: 'calc(1rem + var(--fly-safe-bottom))',
         }}
       >
         <div className="text-2xl font-semibold">
@@ -59,8 +59,8 @@ export function LoginScreen() {
     <div
       className="h-full w-full flex flex-col items-center justify-center gap-6 px-8"
       style={{
-        paddingTop: 'calc(1rem + env(safe-area-inset-top))',
-        paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))',
+        paddingTop: 'calc(1rem + var(--fly-safe-top))',
+        paddingBottom: 'calc(1rem + var(--fly-safe-bottom))',
       }}
     >
       <div className="text-2xl font-semibold">

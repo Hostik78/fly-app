@@ -36,7 +36,7 @@ export function AppShell({ currentUserId }: AppShellProps) {
           немного воздуха, чтобы код аэропорта не прилипал к самому вырезу. */}
       <div
         className="flex-shrink-0 flex items-center justify-end px-5 pb-2 text-xs font-semibold text-fly-gray"
-        style={{ paddingTop: 'calc(0.5rem + env(safe-area-inset-top))' }}
+        style={{ paddingTop: 'calc(0.5rem + var(--fly-safe-top))' }}
       >
         <span>{AIRPORT.code}</span>
       </div>
@@ -60,7 +60,7 @@ export function AppShell({ currentUserId }: AppShellProps) {
           вкладки сидели бы слишком близко к ней. */}
       <nav
         className="flex-shrink-0 flex justify-around items-center px-5 pt-4 bg-fly-glass backdrop-blur-fly-glass border-t border-fly-glass-border"
-        style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
+        style={{ paddingBottom: 'calc(1.5rem + var(--fly-safe-bottom))' }}
       >
         <NavLink to="/" end className={navLinkClass}>
           <GridIcon />

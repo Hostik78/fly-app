@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useState, lazy, type ReactNode } from 'react'
+import { Suspense, useCallback, useEffect, useState, lazy, type ReactNode } from 'react'
 import { HashRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { FeedScreen } from './components/FeedScreen'
 import { MessagesScreen } from './components/MessagesScreen'
 import { AppShell } from './components/AppShell'
 import { CreateStatusScreen } from './components/CreateStatusScreen'
-import { DevicePreview } from './components/DevicePreview'
 import { LoginScreen } from './components/LoginScreen'
 import { ProfileSetupScreen } from './components/ProfileSetupScreen'
 import { NotAtAirportScreen } from './components/NotAtAirportScreen'
@@ -56,6 +55,19 @@ if (isSplashPreview) document.documentElement.dataset.theme = splashPreviewTheme
 // lazy() ожидает export default - у наших компонентов его нет.
 const AccountScreen = lazy(() => import('./components/AccountScreen').then((m) => ({ default: m.AccountScreen })))
 
+// Сам симулятор загружается отдельным dev-only куском. В production условие DEV
+// заранее превращается в false, поэтому ни его JavaScript, ни отдельный CSS-файл
+// панели не попадают в то, что скачивает настоящий пользователь.
+const DevicePreview = import.meta.env.DEV
+  ? lazy(() => import('./components/DevicePreview').then((m) => ({ default: m.DevicePreview })))
+  : null
+
+const isEmbeddedDevicePreview = import.meta.env.DEV
+  && new URLSearchParams(window.location.search).has('device-preview')
+const shouldUseDevicePreview = import.meta.env.DEV
+  && !isEmbeddedDevicePreview
+  && window.matchMedia('(pointer: fine)').matches
+
 // RequireStatus — "охранник" маршрутов: пока человек не опубликовал свою заметку
 // (hasPosted === false), любая попытка попасть на Ленту/Сообщения/Аккаунт
 // перенаправляется на экран создания заметки. Это и есть механика Pure -
@@ -86,13 +98,11 @@ function RequireAirport({ children }: { children: ReactNode }) {
 // Пока это просто состояние в памяти (сбрасывается при перезагрузке страницы) -
 // этого достаточно для первого шага, позже можно будет сохранять его понастоящему.
 //
-// DevicePreview - НЕ часть самого приложения, а инструмент для удобной разработки
-// (рамка телефона на экране компьютера). import.meta.env.DEV - true только при
-// локальной разработке (npm run dev), при настоящей сборке (npm run build - то,
-// что видят реальные люди на реальном телефоне) это false, и весь код рамки
-// (вместе с самим импортом DevicePreview) Vite вообще не включает в сборку -
-// человек на своём телефоне видит просто настоящий экран приложения, без рамки.
-function App() {
+// DevicePreview — не часть самого приложения, а отдельная локальная «студия».
+// FlyApp остаётся единым настоящим приложением: в iframe студии и на реальном
+// телефоне запускается один и тот же компонент. На сенсорном устройстве dev-сервер
+// тоже открывает FlyApp напрямую, без нарисованного «телефона внутри телефона».
+function FlyApp() {
   const { session, loading, error: sessionError, retry: retrySession } = useSession()
   const [hasProfile, setHasProfile] = useState(false)
   const [hasPosted, setHasPosted] = useState(false)
@@ -278,7 +288,18 @@ function App() {
     </div>
   )
 
-  return import.meta.env.DEV ? <DevicePreview>{content}</DevicePreview> : content
+  return content
+}
+
+function App() {
+  if (shouldUseDevicePreview && DevicePreview) {
+    return (
+      <Suspense fallback={<div style={{ width: '100%', height: '100%', background: '#100D16' }} />}>
+        <DevicePreview />
+      </Suspense>
+    )
+  }
+  return <FlyApp />
 }
 
 export default App
