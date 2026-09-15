@@ -109,6 +109,17 @@ try {
     }),
   )
 
+  const foreignProfileForA = requireNoError(
+    'Прямая попытка A прочитать анкету B',
+    await clientA.from('profiles').select('user_id').eq('user_id', userB.id),
+  )
+  const foreignPostForA = requireNoError(
+    'Прямая попытка A прочитать заметку B',
+    await clientA.from('posts').select('user_id').eq('user_id', userB.id),
+  )
+  assert.equal(foreignProfileForA.length, 0, 'A не должен напрямую читать анкету B')
+  assert.equal(foreignPostForA.length, 0, 'A не должен напрямую читать заметку B')
+
   console.log('3/8 Проверяю взаимную видимость в ленте')
   const feedA = requireNoError('Лента A', await clientA.rpc('get_feed_profiles'))
   const feedB = requireNoError('Лента B', await clientB.rpc('get_feed_profiles'))
