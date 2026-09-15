@@ -231,12 +231,54 @@ export type Database = {
     }
     Functions: {
       count_pending_likes: { Args: never; Returns: number }
+      get_blocked_profiles: {
+        Args: never
+        Returns: {
+          age: number
+          category: string
+          gender: string
+          height: number
+          hobby: string
+          languages: string
+          quote: string
+          user_id: string
+        }[]
+      }
       get_feed_posts: {
         Args: never
         Returns: {
           category: string
           created_at: string
           hobby: string
+          quote: string
+          user_id: string
+        }[]
+      }
+      get_feed_profiles: {
+        Args: never
+        Returns: {
+          age: number
+          category: string
+          created_at: string
+          gender: string
+          height: number
+          hobby: string
+          languages: string
+          quote: string
+          user_id: string
+        }[]
+      }
+      get_match_profiles: {
+        Args: never
+        Returns: {
+          age: number
+          category: string
+          created_at: string
+          gender: string
+          height: number
+          hobby: string
+          languages: string
+          last_seen_at: string
           quote: string
           user_id: string
         }[]

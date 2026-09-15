@@ -1,17 +1,7 @@
-// Хук, который грузит настоящую ленту: публикации всех, кроме себя (и кроме
-// скрытых/заблокированных), плюс анкеты этих же людей, склеенные в один список.
-// Сам список постов приходит из готовой функции базы get_feed_posts() (см.
-// миграцию 20260804152508), а не обычным select с фильтром в коде - раньше
-// здесь же отдельно грузился список заблокированных id и вычитался на стороне
-// кода, но код-ревью нашёл, что через это можно было вычислить, кто именно
-// тебя заблокировал (сравнить свои исходящие блокировки с общим списком) - см.
-// подробный комментарий в самой миграции. Теперь база сразу отдаёт готовый
-// список постов, без единого "сырого" id, который можно было бы вычесть.
-//
-// Профили (пол/возраст/рост/языки) - отдельным запросом: posts и profiles
-// намеренно не связаны внешним ключом друг на друга (см.
-// 2026-07-28-profile-setup-design.md, "Почему отдельная таблица"), поэтому
-// склеиваем на стороне кода по user_id.
+// Хук грузит уже готовую безопасную ленту через get_feed_profiles(). База сама
+// соединяет заметку с анкетой и удаляет из результата себя, скрытых людей и
+// блокировки в обе стороны. Клиент больше не получает право отдельно читать
+// произвольные строки profiles/posts и не может обойти эту фильтрацию.
 
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
@@ -59,50 +49,36 @@ export function useFeedProfiles(
     }
 
     async function load() {
-      // Лимит "сколько последних заметок" теперь внутри самой get_feed_posts()
-      // (см. миграцию) - без него лента однажды скачивала бы все публикации
+      // Лимит "сколько последних анкет" находится внутри get_feed_profiles() —
+      // без него лента однажды скачивала бы все публикации
       // всех пользователей сразу, и чем больше людей в приложении, тем медленнее
       // она открывалась бы у каждого.
-      const [postsResult, likesResult] = await Promise.all([
-        supabase.rpc('get_feed_posts'),
+      const [profilesResult, likesResult] = await Promise.all([
+        supabase.rpc('get_feed_profiles'),
         supabase.from('likes').select('liked_id').eq('liker_id', userId),
       ])
-      const initialError = firstDatabaseReadError(postsResult, likesResult)
+      const initialError = firstDatabaseReadError(profilesResult, likesResult)
       if (initialError) {
         fail('не удалось загрузить ленту и лайки', initialError)
         return
       }
-      const posts = postsResult.data
+      const profileRows = profilesResult.data
       const myLikes = likesResult.data
       const likedIds = new Set((myLikes ?? []).map((row) => row.liked_id))
-
-      const userIds = (posts ?? []).map((post) => post.user_id)
-      let profileRows: Awaited<ReturnType<typeof loadProfiles>>['data'] = []
-      if (userIds.length > 0) {
-        const profileResult = await loadProfiles(userIds)
-        if (profileResult.error) {
-          fail('не удалось загрузить анкеты для ленты', profileResult.error)
-          return
-        }
-        profileRows = profileResult.data
-      }
-
-      const infoByUserId = new Map((profileRows ?? []).map((row) => [row.user_id, row]))
       const now = Date.now()
 
-      const merged: Profile[] = (posts ?? []).map((post) => {
-        const info = infoByUserId.get(post.user_id)
+      const merged: Profile[] = (profileRows ?? []).map((row) => {
         return {
-          id: post.user_id,
-          gender: (info?.gender ?? undefined) as Profile['gender'],
-          category: post.category as ProfileCategory,
-          hobby: (post.hobby ?? undefined) as HobbyId | undefined,
-          isNew: now - new Date(post.created_at).getTime() < NEW_THRESHOLD_MS,
-          quote: post.quote,
-          age: info?.age ?? undefined,
-          height: info?.height ?? undefined,
-          languages: info?.languages ?? undefined,
-          likedByMe: likedIds.has(post.user_id),
+          id: row.user_id,
+          gender: (row.gender ?? undefined) as Profile['gender'],
+          category: row.category as ProfileCategory,
+          hobby: (row.hobby ?? undefined) as HobbyId | undefined,
+          isNew: now - new Date(row.created_at).getTime() < NEW_THRESHOLD_MS,
+          quote: row.quote,
+          age: row.age ?? undefined,
+          height: row.height ?? undefined,
+          languages: row.languages ?? undefined,
+          likedByMe: likedIds.has(row.user_id),
         }
       })
 
@@ -110,10 +86,6 @@ export function useFeedProfiles(
         setProfiles(merged)
         setLoading(false)
       }
-    }
-
-    function loadProfiles(userIds: string[]) {
-      return supabase.from('profiles').select('user_id, gender, age, height, languages').in('user_id', userIds)
     }
 
     load().catch((cause: unknown) => fail('неожиданная ошибка загрузки ленты', cause))

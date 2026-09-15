@@ -110,8 +110,8 @@ try {
   )
 
   console.log('3/8 Проверяю взаимную видимость в ленте')
-  const feedA = requireNoError('Лента A', await clientA.rpc('get_feed_posts'))
-  const feedB = requireNoError('Лента B', await clientB.rpc('get_feed_posts'))
+  const feedA = requireNoError('Лента A', await clientA.rpc('get_feed_profiles'))
+  const feedB = requireNoError('Лента B', await clientB.rpc('get_feed_profiles'))
   assert.ok(feedA.some((post) => post.user_id === userB.id), 'A не видит заметку B')
   assert.ok(feedB.some((post) => post.user_id === userA.id), 'B не видит заметку A')
 
@@ -137,8 +137,8 @@ try {
     'Лайк B → A',
     await clientB.from('likes').insert({ liker_id: userB.id, liked_id: userA.id }),
   )
-  const matchesA = requireNoError('Совпадения A', await clientA.rpc('get_match_user_ids'))
-  const matchesB = requireNoError('Совпадения B', await clientB.rpc('get_match_user_ids'))
+  const matchesA = requireNoError('Совпадения A', await clientA.rpc('get_match_profiles'))
+  const matchesB = requireNoError('Совпадения B', await clientB.rpc('get_match_profiles'))
   assert.deepEqual(matchesA.map(({ user_id }) => user_id), [userB.id])
   assert.deepEqual(matchesB.map(({ user_id }) => user_id), [userA.id])
 
@@ -165,9 +165,14 @@ try {
   )
   const matchesAfterBlock = requireNoError(
     'Совпадения A после блокировки',
-    await clientA.rpc('get_match_user_ids'),
+    await clientA.rpc('get_match_profiles'),
   )
   assert.equal(matchesAfterBlock.length, 0, 'Заблокированная пара не должна оставаться в совпадениях')
+  const blockedProfilesB = requireNoError(
+    'Список заблокированных B',
+    await clientB.rpc('get_blocked_profiles'),
+  )
+  assert.deepEqual(blockedProfilesB.map(({ user_id }) => user_id), [userA.id])
   const blockedMessage = await clientA.from('messages').insert({
     sender_id: userA.id,
     recipient_id: userB.id,
