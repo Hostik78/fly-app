@@ -3,9 +3,17 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import { configDefaults } from 'vitest/config'
 
 // https://vite.dev/config/
 export default defineConfig({
+  test: {
+    // Дополнительные git-worktree лежат внутри папки проекта, поэтому Vitest без
+    // этого правила находил их копии тестов и создавал ложное впечатление, что
+    // основная ветка проверена втрое большим набором сценариев. Стандартные
+    // исключения Vitest сохраняем и добавляем только служебную папку worktree.
+    exclude: [...configDefaults.exclude, '**/.worktrees/**'],
+  },
   plugins: [
     react(),
     tailwindcss(),
