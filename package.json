@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:two-accounts": "node --env-file=.env.local scripts/smoke-two-accounts.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",
