@@ -1,17 +1,12 @@
-// Хук для экрана "Заблокированные" (см. BlockedAccountsScreen.tsx) - список всех,
-// кого текущий пользователь заблокировал, плюс возможность разблокировать.
-// Собирает анкеты тем же приёмом склейки на стороне кода, что и useMatches.ts/
-// useFeedProfiles.ts - см. их комментарий про то, почему posts и profiles не
-// связаны внешним ключом друг на друга. В отличие от тех двух хуков, здесь
-// список строится по blockedIds напрямую, а не по постам - у заблокированного
-// человека вполне может уже не быть текущей заметки, но он всё равно должен
-// остаться в списке заблокированных.
+// Хук для экрана "Заблокированные" получает только тех людей, которых текущий
+// пользователь сам заблокировал. База соединяет блокировку с анкетой и заметкой
+// внутри get_blocked_profiles(), поэтому широкое чтение таблиц не требуется.
 
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
 import type { Profile, ProfileCategory } from '../data/profiles'
 import type { HobbyId } from '../data/hobbies'
-import { firstDatabaseReadError, reportDatabaseReadError } from './databaseReadError'
+import { reportDatabaseReadError } from './databaseReadError'
 
 export function useBlockedUsers(currentUserId: string | undefined): {
   blocked: Profile[]
@@ -31,7 +26,6 @@ export function useBlockedUsers(currentUserId: string | undefined): {
       setLoading(false)
       return
     }
-    const userId = currentUserId
     let cancelled = false
     setLoading(true)
     setError(false)
@@ -45,15 +39,13 @@ export function useBlockedUsers(currentUserId: string | undefined): {
     }
 
     async function load() {
-      const blockedResult = await supabase.from('blocked_users').select('blocked_id').eq('blocker_id', userId)
+      const blockedResult = await supabase.rpc('get_blocked_profiles')
       if (blockedResult.error) {
         fail('не удалось загрузить список блокировок', blockedResult.error)
         return
       }
       const blockedRows = blockedResult.data
-      const blockedIds = (blockedRows ?? []).map((row) => row.blocked_id)
-
-      if (blockedIds.length === 0) {
+      if (!blockedRows || blockedRows.length === 0) {
         if (!cancelled) {
           setBlocked([])
           setLoading(false)
@@ -61,33 +53,16 @@ export function useBlockedUsers(currentUserId: string | undefined): {
         return
       }
 
-      const [postsResult, profilesResult] = await Promise.all([
-        supabase.from('posts').select('user_id, quote, category, hobby').in('user_id', blockedIds),
-        supabase.from('profiles').select('user_id, gender, age, height, languages').in('user_id', blockedIds),
-      ])
-      const detailError = firstDatabaseReadError(postsResult, profilesResult)
-      if (detailError) {
-        fail('не удалось загрузить анкеты заблокированных', detailError)
-        return
-      }
-      const posts = postsResult.data
-      const profileRows = profilesResult.data
-
-      const postByUserId = new Map((posts ?? []).map((row) => [row.user_id, row]))
-      const infoByUserId = new Map((profileRows ?? []).map((row) => [row.user_id, row]))
-
-      const merged: Profile[] = blockedIds.map((id) => {
-        const post = postByUserId.get(id)
-        const info = infoByUserId.get(id)
+      const merged: Profile[] = blockedRows.map((row) => {
         return {
-          id,
-          gender: (info?.gender ?? undefined) as Profile['gender'],
-          category: (post?.category ?? 'communication') as ProfileCategory,
-          hobby: (post?.hobby ?? undefined) as HobbyId | undefined,
-          quote: post?.quote ?? '',
-          age: info?.age ?? undefined,
-          height: info?.height ?? undefined,
-          languages: info?.languages ?? undefined,
+          id: row.user_id,
+          gender: (row.gender ?? undefined) as Profile['gender'],
+          category: row.category as ProfileCategory,
+          hobby: (row.hobby ?? undefined) as HobbyId | undefined,
+          quote: row.quote,
+          age: row.age ?? undefined,
+          height: row.height ?? undefined,
+          languages: row.languages ?? undefined,
           likedByMe: false,
         }
       })
