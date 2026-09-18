@@ -5,7 +5,7 @@
 // "Помощь" (см. HelpScreen.tsx), "Удалить аккаунт" (см. deleteAccount.ts и
 // api/delete-account.ts).
 import { useRef, useState } from 'react'
-import { useOutletContext } from 'react-router-dom'
+import { useNavigate, useOutletContext } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { getLanguageCodesFromNames } from '../data/languages'
 import { useLikedByCount } from '../lib/useLikedByCount'
@@ -45,7 +45,8 @@ interface PostRow {
 type EditingTarget = 'profile' | 'post'
 
 export function AccountScreen() {
-  const { currentUserId } = useOutletContext<AppOutletContext>()
+  const { currentUserId, hasPosted } = useOutletContext<AppOutletContext>()
+  const navigate = useNavigate()
   const {
     count: likedByCount,
     loading: loadingLikedByCount,
@@ -176,6 +177,9 @@ export function AccountScreen() {
   }
 
   async function startEditingPost() {
+    // У нового аккаунта ещё нет заметки для редактирования. Открываем создание,
+    // где проверяется геолокация, вместо ошибочного запроса отсутствующей строки.
+    if (!hasPosted) { navigate('/new'); return }
     const requestId = ++editingRequestRef.current
     setLoadingEditor('post')
     setEditingLoadError(null)
@@ -317,7 +321,7 @@ export function AccountScreen() {
             onClick={startEditingPost}
             className="px-4 py-3 rounded-fly-md bg-fly-glass backdrop-blur-fly-glass border border-fly-glass-border text-sm text-fly-ink text-left transition-opacity disabled:opacity-60"
           >
-            Изменить заметку
+            {hasPosted ? 'Изменить заметку' : 'Создать заметку'}
           </button>
 
           {editingLoadError && (

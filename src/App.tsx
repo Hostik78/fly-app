@@ -1,5 +1,5 @@
 import { Suspense, useCallback, useEffect, useState, lazy, type ReactNode } from 'react'
-import { HashRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { FeedScreen } from './components/FeedScreen'
 import { MessagesScreen } from './components/MessagesScreen'
 import { AppShell } from './components/AppShell'
@@ -68,15 +68,6 @@ const shouldUseDevicePreview = import.meta.env.DEV
   && !isEmbeddedDevicePreview
   && window.matchMedia('(pointer: fine)').matches
 
-// RequireStatus — "охранник" маршрутов: пока человек не опубликовал свою заметку
-// (hasPosted === false), любая попытка попасть на Ленту/Сообщения/Аккаунт
-// перенаправляется на экран создания заметки. Это и есть механика Pure -
-// сначала пишешь сам, потом видишь остальных.
-function RequireStatus({ hasPosted }: { hasPosted: boolean }) {
-  if (!hasPosted) return <Navigate to="/new" replace />
-  return <Outlet />
-}
-
 // RequireAirport — второй "охранник", но не редиректит (тут некуда - это не
 // отдельный маршрут, а состояние прямо на месте): проверяет геолокацию и либо
 // показывает то, что ему передали (children), либо NotAtAirportScreen с понятным
@@ -84,11 +75,31 @@ function RequireStatus({ hasPosted }: { hasPosted: boolean }) {
 // "Что именно требует нахождения в аэропорту" (2026-07-29-airport-geofence-design.md).
 function RequireAirport({ children }: { children: ReactNode }) {
   const { status, distanceKm, retry } = useAirportPresence()
-  if (status === 'checking') return <div className="h-full w-full" />
+  if (status === 'checking') return <div role="status" className="h-full flex items-center justify-center p-6 text-sm text-fly-gray">Проверяем местоположение…</div>
   if (status !== 'at-airport' && status !== 'test-access') {
     return <NotAtAirportScreen status={status} distanceKm={distanceKm} onRetry={retry} />
   }
   return <>{children}</>
+}
+
+// Общая навигация доступна сразу после анкеты. Первая заметка нужна только для
+// ленты: её отсутствие не должно запирать человека вне аэропорта без аккаунта,
+// выхода и сообщений. Выделенные маршруты также проверяются отдельно в тестах.
+export function ApplicationRoutes({ currentUserId, hasPosted, onPublish }: {
+  currentUserId: string
+  hasPosted: boolean
+  onPublish: (quote: string, category: ProfileCategory, hobby: HobbyId | null) => Promise<void>
+}) {
+  return <Routes>
+    <Route element={<AppShell currentUserId={currentUserId} hasPosted={hasPosted} />}>
+      <Route path="/new" element={hasPosted ? <Navigate to="/" replace /> :
+        <RequireAirport><CreateStatusScreen onSubmit={onPublish} /></RequireAirport>} />
+      <Route index element={hasPosted ? <RequireAirport><FeedScreen /></RequireAirport> : <Navigate to="/new" replace />} />
+      <Route path="messages" element={<MessagesScreen />} />
+      <Route path="account" element={<AccountScreen />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Route>
+  </Routes>
 }
 
 // Корневой компонент приложения — то, с чего всё начинается.
@@ -236,39 +247,7 @@ function FlyApp() {
       по какому именно пути его открыли.
     */
     <HashRouter>
-      <Routes>
-        {/*
-          Если заметка уже опубликована, а человек всё равно зашёл на /new (например, по старой
-          ссылке) - сразу отправляем его в ленту. Это же условие само сработает и сразу после
-          публикации: hasPosted меняется -> App перерисовывается -> элемент маршрута пересчитывается.
-        */}
-        <Route
-          path="/new"
-          element={
-            hasPosted ? (
-              <Navigate to="/" replace />
-            ) : (
-              <RequireAirport>
-                <CreateStatusScreen onSubmit={handlePublish} />
-              </RequireAirport>
-            )
-          }
-        />
-        <Route element={<RequireStatus hasPosted={hasPosted} />}>
-          <Route element={<AppShell currentUserId={session.user.id} />}>
-            <Route
-              index
-              element={
-                <RequireAirport>
-                  <FeedScreen />
-                </RequireAirport>
-              }
-            />
-            <Route path="messages" element={<MessagesScreen />} />
-            <Route path="account" element={<AccountScreen />} />
-          </Route>
-        </Route>
-      </Routes>
+      <ApplicationRoutes currentUserId={session.user.id} hasPosted={hasPosted} onPublish={handlePublish} />
     </HashRouter>
   )
 

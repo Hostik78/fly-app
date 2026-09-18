@@ -1,7 +1,7 @@
 // Экран "не в аэропорту" - показывается вместо ленты/первой публикации, если
 // проверка геолокации (см. useAirportPresence.ts) не подтвердила, что человек
-// сейчас в Шереметьево. Полноэкранный вид, по образцу LoginScreen.tsx - без
-// строки статуса и нижней навигации.
+// сейчас в Шереметьево. Находится внутри AppShell: нижняя навигация остаётся
+// доступной, даже если человек ещё не создал первую заметку.
 
 import { AIRPORT } from '../data/airport'
 import type { AirportPresenceStatus } from '../lib/useAirportPresence'
@@ -15,7 +15,7 @@ interface NotAtAirportScreenProps {
 export function NotAtAirportScreen({ status, distanceKm, onRetry }: NotAtAirportScreenProps) {
   return (
     <div
-      className="h-full w-full flex flex-col items-center justify-center gap-4 px-8 text-center"
+      className="fly-entry-screen h-full w-full flex flex-col items-center gap-4 px-8 text-center"
       style={{
         paddingTop: 'calc(1rem + var(--fly-safe-top))',
         paddingBottom: 'calc(1rem + var(--fly-safe-bottom))',
@@ -25,6 +25,7 @@ export function NotAtAirportScreen({ status, distanceKm, onRetry }: NotAtAirport
         Fl<span className="text-fly-accent">y</span>
       </div>
       <p className="text-sm text-fly-gray leading-relaxed">{getText(status, distanceKm)}</p>
+      <p className="text-sm text-fly-gray">Сообщения и аккаунт доступны в нижнем меню.</p>
       <button
         type="button"
         onClick={onRetry}
@@ -46,7 +47,7 @@ function getText(status: AirportPresenceStatus, distanceKm: number | null): stri
   if (status === 'not-at-airport') {
     const distanceText =
       distanceKm !== null ? ` Судя по всему, вы примерно в ${Math.round(distanceKm)} км от него.` : ''
-    return `Это приложение работает только в аэропорту ${AIRPORT.name} (${AIRPORT.code}).${distanceText}`
+    return `Лента и публикация заметок доступны рядом с аэропортом ${AIRPORT.name} (${AIRPORT.code}).${distanceText}`
   }
   return 'Не получилось определить местоположение. Проверьте подключение к интернету и попробуйте снова.'
 }

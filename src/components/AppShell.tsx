@@ -9,6 +9,7 @@ import { AIRPORT } from '../data/airport'
 // подключается один раз здесь, а не в каждом экране отдельно, чтобы не открывать
 // несколько одинаковых realtime-каналов на одного и того же человека.
 export interface AppOutletContext {
+  hasPosted: boolean
   currentUserId: string
   onlineUserIds: Set<string>
   presenceStatusKnown: boolean
@@ -16,13 +17,14 @@ export interface AppOutletContext {
 
 interface AppShellProps {
   currentUserId: string
+  hasPosted: boolean
 }
 
 // AppShell — общая "рамка" вокруг ЛЮБОГО экрана приложения: строка статуса телефона
 // сверху и нижняя навигация всегда на месте, а между ними — <Outlet /> (это специальное
 // место из React Router, куда подставляется нужный экран в зависимости от того,
 // какая вкладка выбрана: Лента / Сообщения / Аккаунт).
-export function AppShell({ currentUserId }: AppShellProps) {
+export function AppShell({ currentUserId, hasPosted }: AppShellProps) {
   const { onlineIds: onlineUserIds, statusKnown: presenceStatusKnown } = useOnlinePresence(currentUserId)
 
   return (
@@ -47,9 +49,9 @@ export function AppShell({ currentUserId }: AppShellProps) {
           отдельным кусочком кода (lazy, см. App.tsx) - если бы граница ожидания стояла
           выше, на время его догрузки пропадала бы вообще вся навигация ниже (строка
           статуса и нижние вкладки), а не только сама вкладка. */}
-      <div className="flex-1 overflow-hidden">
+      <div className="min-h-0 flex-1 overflow-hidden">
         <Suspense fallback={<div className="h-full w-full" />}>
-          <Outlet context={{ currentUserId, onlineUserIds, presenceStatusKnown } satisfies AppOutletContext} />
+          <Outlet context={{ currentUserId, hasPosted, onlineUserIds, presenceStatusKnown } satisfies AppOutletContext} />
         </Suspense>
       </div>
 
@@ -59,10 +61,11 @@ export function AppShell({ currentUserId }: AppShellProps) {
           есть полоска-индикатор возврата на главный экран - без этого отступа
           вкладки сидели бы слишком близко к ней. */}
       <nav
+        aria-label="Основная навигация"
         className="flex-shrink-0 flex justify-around items-center px-5 pt-4 bg-fly-glass backdrop-blur-fly-glass border-t border-fly-glass-border"
         style={{ paddingBottom: 'calc(1.5rem + var(--fly-safe-bottom))' }}
       >
-        <NavLink to="/" end className={navLinkClass}>
+        <NavLink to={hasPosted ? '/' : '/new'} end className={navLinkClass}>
           <GridIcon />
           Лента
         </NavLink>
