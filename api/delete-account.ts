@@ -15,6 +15,9 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseAdmin = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Ответ об удалении относится только к текущему запросу и не должен
+  // сохраняться промежуточными кешами.
+  res.setHeader('Cache-Control', 'no-store')
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'method not allowed' })
     return
@@ -30,22 +33,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return
   }
 
-  const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token)
-  if (userError || !userData.user) {
-    res.status(401).json({ error: 'invalid token' })
-    return
+  try {
+    const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token)
+    if (userError || !userData.user) {
+      res.status(401).json({ error: 'invalid token' })
+      return
+    }
+    const userId = userData.user.id
+
+    // Сначала удаляем фото, затем аккаунт. Ошибка хранилища — не подтверждение
+    // отсутствия файла: при сбое оставляем аккаунт для безопасного повтора.
+    // Повторное удаление уже отсутствующего файла допустимо в Storage API.
+    const { error: storageError } = await supabaseAdmin.storage.from('avatars').remove([`${userId}/avatar.jpg`])
+    if (storageError) {
+      res.status(503).json({ error: 'photo cleanup failed' })
+      return
+    }
+
+    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId)
+    if (deleteError) {
+      res.status(500).json({ error: 'delete failed' })
+      return
+    }
+
+    res.status(200).json({ success: true })
+  } catch {
+    // Сетевая ошибка не должна превращаться в успех или раскрывать клиенту
+    // внутренний адрес сервиса, содержимое запроса и диагностические данные.
+    res.status(503).json({ error: 'delete temporarily unavailable' })
   }
-  const userId = userData.user.id
-
-  // Ошибку тут намеренно не считаем поводом остановиться - у человека вполне
-  // может не быть загруженного фото вообще, тогда файла и так не существует.
-  await supabaseAdmin.storage.from('avatars').remove([`${userId}/avatar.jpg`])
-
-  const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId)
-  if (deleteError) {
-    res.status(500).json({ error: 'delete failed' })
-    return
-  }
-
-  res.status(200).json({ success: true })
 }
