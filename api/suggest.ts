@@ -11,15 +11,31 @@ const client = new Anthropic()
 const supabaseAdmin = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 interface SuggestRequestBody {
-  category?: string
-  context?: {
+  category: string
+  context: {
     weather: string | null
     temperature: number | null
     timeOfDay: string
   }
 }
 
-const MAX_CATEGORY_LENGTH = 40
+// Проверка TypeScript не действует на данные из интернета. Допускаем только
+// значения, которые действительно отправляет приложение, а не произвольный
+// текст для платной модели. Ограничения частоты запросов нужны отдельно.
+function isSuggestRequest(value: unknown): value is SuggestRequestBody {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const body = value as Record<string, unknown>
+  const allowedCategories = ['communication', 'romance', 'hobbies', 'fellow-travelers', 'networking', 'friendship']
+  if (typeof body.category !== 'string' || !allowedCategories.includes(body.category)) return false
+  if (!body.context || typeof body.context !== 'object' || Array.isArray(body.context)) return false
+  const context = body.context as Record<string, unknown>
+  const weather = ['ясно', 'облачно', 'туман', 'дождь', 'снег', 'ливень', 'гроза']
+  return (context.weather === null || (typeof context.weather === 'string' && weather.includes(context.weather)))
+    && (context.temperature === null || (typeof context.temperature === 'number'
+      && Number.isFinite(context.temperature) && context.temperature >= -100 && context.temperature <= 60))
+    && typeof context.timeOfDay === 'string'
+    && ['утро', 'день', 'вечер', 'ночь'].includes(context.timeOfDay)
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -44,12 +60,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return
   }
 
-  const { category, context } = req.body as SuggestRequestBody
-
-  if (!category || !context || category.length > MAX_CATEGORY_LENGTH) {
+  if (!isSuggestRequest(req.body)) {
     res.status(400).json({ suggestions: [] })
     return
   }
+  const { category, context } = req.body
 
   const weatherText = context.weather
     ? `сейчас ${context.weather}${context.temperature != null ? `, ${context.temperature}°C` : ''}`
