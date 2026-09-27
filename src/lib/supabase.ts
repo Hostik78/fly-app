@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import type { Database } from './database.types'
+import type { Database } from './photo.database.types'
 
 // Подключение к Supabase - готовому "бэкенду в коробке" (база данных + вход/регистрация +
 // хранение файлов + переписка в реальном времени), вместо того чтобы писать всё это самим.

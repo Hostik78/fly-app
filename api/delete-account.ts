@@ -12,7 +12,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseAdmin = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+)
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Ответ об удалении относится только к текущему запросу и не должен
@@ -41,11 +44,47 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     const userId = userData.user.id
 
-    // Сначала удаляем фото, затем аккаунт. Ошибка хранилища — не подтверждение
-    // отсутствия файла: при сбое оставляем аккаунт для безопасного повтора.
-    // Повторное удаление уже отсутствующего файла допустимо в Storage API.
-    const { error: storageError } = await supabaseAdmin.storage.from('avatars').remove([`${userId}/avatar.jpg`])
-    if (storageError) {
+    // Закрываем выдачу и новые загрузки до уборки. Действующий JWT сам по
+    // себе недостаточен: RPC проверяет, что сессия ещё есть в auth.sessions.
+    const viewer = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+    const closing = await viewer.rpc('photo_begin_delete')
+    if (closing.error) {
+      res.status(503).json({ error: 'photo cleanup failed' })
+      return
+    }
+    if (closing.data === false) {
+      res.status(409).json({ error: 'photo upload in progress; retry shortly' })
+      return
+    }
+
+    // Удаляем все версии из обоих хранилищ, включая незавершённые загрузки.
+    // После удаления страницы снова читаем offset=0, иначе часть файлов
+    // сместилась бы назад и была пропущена. Вложенные папки тоже учитываем.
+    async function cleanFolder(bucket: string, prefix: string): Promise<void> {
+      const storage = supabaseAdmin.storage.from(bucket)
+      while (true) {
+        const { data, error } = await storage.list(prefix, { limit: 100, offset: 0 })
+        if (error || !data) throw new Error('storage list failed')
+        if (!data.length) return
+        const files: string[] = []
+        for (const item of data) {
+          const path = `${prefix}/${item.name}`
+          if (item.id) files.push(path)
+          else await cleanFolder(bucket, path)
+        }
+        if (files.length) {
+          const removed = await storage.remove(files)
+          if (removed.error) throw new Error('storage remove failed')
+        }
+      }
+    }
+    try {
+      await cleanFolder('avatars', userId)
+      await cleanFolder('profile-photos', userId)
+    } catch {
       res.status(503).json({ error: 'photo cleanup failed' })
       return
     }

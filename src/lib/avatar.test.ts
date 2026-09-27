@@ -1,21 +1,36 @@
-import { describe, expect, it } from 'vitest'
-import { getAvatarUrl } from './avatar'
-
-describe('getAvatarUrl', () => {
-  // Баг, который тут реально был: 0 - "ложное" значение в JS, и первая версия
-  // кода (`cacheBustKey ? ... : ...`) из-за этого пропускала "?v=" именно на
-  // нулевой версии - то есть каждый первый рендер после перезагрузки страницы
-  // (avatarVersion стартует с 0) не сбрасывал кеш браузера, как будто версии
-  // не передавали вообще. См. LESSONS.md.
-  it('adds ?v= even when the version is 0', () => {
-    expect(getAvatarUrl('user-1', 0)).toMatch(/\?v=0$/)
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+const auth = vi.hoisted(() => ({ getSession: vi.fn() }))
+vi.mock('./supabase', () => ({ supabase: { auth } }))
+import { fetchAvatar } from './avatar'
+beforeEach(() => {
+  vi.restoreAllMocks()
+  auth.getSession.mockResolvedValue({ data: { session: { access_token: 'session-token' } } })
+})
+describe('защищённая загрузка фото', () => {
+  it('не запрашивает фото без сессии', async () => {
+    auth.getSession.mockResolvedValue({ data: { session: null } })
+    const fetch = vi.spyOn(globalThis, 'fetch')
+    expect(await fetchAvatar('owner')).toBeNull()
+    expect(fetch).not.toHaveBeenCalled()
   })
-
-  it('adds ?v= for a real version number', () => {
-    expect(getAvatarUrl('user-1', 3)).toMatch(/\?v=3$/)
+  it('передаёт токен заголовком и запрещает кеш', async () => {
+    const fetch = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response(new Blob(['photo']), { status: 200 }))
+    expect(await fetchAvatar('owner')).toBeInstanceOf(Blob)
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/photo?owner=owner',
+      expect.objectContaining({
+        cache: 'no-store',
+        headers: { Authorization: 'Bearer session-token' },
+      }),
+    )
   })
-
-  it('omits ?v= only when no version is passed at all', () => {
-    expect(getAvatarUrl('user-1')).not.toContain('?v=')
+  it('не возвращается к публичному пути при отказе', async () => {
+    const fetch = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response(null, { status: 404 }))
+    expect(await fetchAvatar('owner')).toBeNull()
+    expect(fetch).toHaveBeenCalledTimes(1)
   })
 })

@@ -5,13 +5,16 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 // удаления реальных аккаунтов и без использования секретов проекта.
 const service = vi.hoisted(() => ({
   getUser: vi.fn(),
+  rpc: vi.fn(),
+  list: vi.fn(),
   remove: vi.fn(),
   deleteUser: vi.fn(),
 }))
 vi.mock('@supabase/supabase-js', () => ({
   createClient: () => ({
     auth: { getUser: service.getUser, admin: { deleteUser: service.deleteUser } },
-    storage: { from: () => ({ remove: service.remove }) },
+    rpc: service.rpc,
+    storage: { from: () => ({ remove: service.remove, list: service.list }) },
   }),
 }))
 import handler from '../api/delete-account'
@@ -34,6 +37,8 @@ describe('удаление аккаунта', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     service.getUser.mockResolvedValue({ data: { user: { id: 'owner' } }, error: null })
+    service.rpc.mockResolvedValue({data:null,error:null})
+    service.list.mockResolvedValue({data:[],error:null}).mockResolvedValueOnce({data:[{name:'avatar.jpg',id:'file'}],error:null})
     service.remove.mockResolvedValue({ data: [], error: null })
     service.deleteUser.mockResolvedValue({ data: {}, error: null })
   })
@@ -51,6 +56,12 @@ describe('удаление аккаунта', () => {
     expect(service.remove).toHaveBeenCalledWith(['owner/avatar.jpg'])
     expect(service.deleteUser).toHaveBeenCalledWith('owner')
     expect(service.remove.mock.invocationCallOrder[0]).toBeLessThan(service.deleteUser.mock.invocationCallOrder[0])
+  })
+
+  it('не удаляет аккаунт, если не удалось закрыть доступ к фото', async () => {
+    service.rpc.mockResolvedValue({error:{message:'failed'}})
+    expect((await request()).status).toBe(503)
+    expect(service.deleteUser).not.toHaveBeenCalled()
   })
 
   it('не разрешает удаление без токена', async () => {

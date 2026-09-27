@@ -10,7 +10,9 @@ import { supabase } from '../lib/supabase'
 import { getLanguageCodesFromNames } from '../data/languages'
 import { useLikedByCount } from '../lib/useLikedByCount'
 import { usePushNotifications } from '../lib/usePushNotifications'
-import { getAvatarUrl, uploadAvatar } from '../lib/avatar'
+import { uploadAvatar } from '../lib/avatar'
+import { usePrivatePhoto } from '../lib/usePrivatePhoto'
+import { PhotoPrivacySettings } from './PhotoPrivacySettings'
 import { deleteAccount } from '../lib/deleteAccount'
 import { useTheme } from '../lib/useTheme'
 import type { ThemePreference } from '../lib/theme'
@@ -65,17 +67,14 @@ export function AccountScreen() {
   const editingRequestRef = useRef(0)
   const [showHelp, setShowHelp] = useState(false)
   const [showBlocked, setShowBlocked] = useState(false)
-  // Фото профиля - показываем сразу, оптимистично (публичный бакет, см. avatar.ts) -
-  // отдельно спрашивать базу "есть ли фото" не нужно, но сам факт "фото ещё
-  // не подгрузилось" тоже нужно как-то отражать (см. avatarLoaded ниже) -
-  // раньше, пока шла попытка загрузить <img>, кружок на секунду оставался
-  // пустым, что ощущалось как "не сразу появляется".
+  // Фотография загружается только после серверной проверки сессии.
   const [avatarBroken, setAvatarBroken] = useState(false)
   // Подгрузилось ли настоящее фото - пока нет (или его вовсе нет), под ним
   // всегда видна цветная заглушка (см. JSX ниже), фото просто аккуратно
   // проявляется поверх неё, когда действительно готово - без паузы "пусто".
   const [avatarLoaded, setAvatarLoaded] = useState(false)
   const [avatarVersion, setAvatarVersion] = useState(0)
+  const photo = usePrivatePhoto(currentUserId, avatarVersion)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [avatarError, setAvatarError] = useState<string | null>(null)
   const avatarInputRef = useRef<HTMLInputElement>(null)
@@ -274,9 +273,9 @@ export function AccountScreen() {
                 проявляется. Если фото на самом деле нет (onError) - остаётся
                 просто невидимым, заглушка снизу так и продолжает быть видна. */}
             <div className="absolute inset-0 bg-gradient-to-br from-fly-tint-accent to-fly-accent" />
-            {currentUserId && !avatarBroken && (
+            {photo && !avatarBroken && (
               <img
-                src={getAvatarUrl(currentUserId, avatarVersion)}
+                src={photo}
                 onLoad={() => setAvatarLoaded(true)}
                 onError={() => setAvatarBroken(true)}
                 alt="Фото профиля"
@@ -305,6 +304,7 @@ export function AccountScreen() {
           {avatarError && <p className="text-xs text-fly-gray text-center px-6">{avatarError}</p>}
         </div>
 
+        <PhotoPrivacySettings />
         <div className="flex flex-col gap-2">
           <button
             type="button"

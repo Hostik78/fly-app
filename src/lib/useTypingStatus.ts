@@ -1,60 +1,55 @@
-// Хук для СПИСКА в "Сообщениях": кто из совпадений печатает мне прямо сейчас -
-// сразу за несколькими людьми одновременно (по одному realtime-каналу на
-// каждого), а не только за одним открытым разговором. Для одного открытого
-// разговора (там ещё нужно и самому сообщать "печатаю") - см. useTypingChannel.ts.
-// Имя канала - общее (typingChannel.ts), поэтому оба хука видят одни и те же события.
-
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
-import { TYPING_CLEAR_MS, typingChannelName } from './typingChannel'
-import { reportDatabaseReadError } from './databaseReadError'
 
-export function useTypingStatus(currentUserId: string | undefined, matchIds: string[]): Set<string> {
+// Статус читается с повторной серверной проверкой блокировок. Подписка на
+// угадываемый Broadcast-канал больше не может раскрыть чужой набор текста.
+export function useTypingStatus(
+  currentUserId: string | undefined,
+  matchIds: string[],
+): Set<string> {
   const [typingIds, setTypingIds] = useState<Set<string>>(new Set())
-  // Копия в строку - React сравнивает элементы массива в deps по ссылке, а
-  // matchIds пересоздаётся заново при каждой перерисовке MessagesScreen.
-  const matchIdsKey = matchIds.join(',')
-
+  const key = matchIds.join(',')
   useEffect(() => {
-    if (!currentUserId || matchIdsKey === '') {
+    let cancelled = false
+    let busy = false
+    setTypingIds(new Set())
+    if (!currentUserId || !key) return
+    const allowed = new Set(key.split(','))
+    async function load() {
+      if (busy || document.visibilityState === 'hidden') return
+      busy = true
+      try {
+        const { data, error } = await supabase.rpc('activity_read')
+        if (error || !Array.isArray(data)) throw error
+        const ids = data.flatMap((row) =>
+          row &&
+          typeof row === 'object' &&
+          !Array.isArray(row) &&
+          row.typing === true &&
+          typeof row.user_id === 'string' &&
+          allowed.has(row.user_id)
+            ? [row.user_id]
+            : [],
+        )
+        if (!cancelled) setTypingIds(new Set(ids))
+      } catch {
+        if (!cancelled) setTypingIds(new Set())
+      } finally {
+        busy = false
+      }
+    }
+    function visibility() {
       setTypingIds(new Set())
-      return
+      void load()
     }
-    const ids = matchIdsKey.split(',')
-    const clearTimers = new Map<string, ReturnType<typeof setTimeout>>()
-
-    const channels = ids.map((otherId) => {
-      const channel = supabase.channel(typingChannelName(currentUserId, otherId))
-      channel
-        .on('broadcast', { event: 'typing' }, ({ payload }) => {
-          if (payload.from !== otherId) return
-          setTypingIds((current) => new Set(current).add(otherId))
-          const existingTimer = clearTimers.get(otherId)
-          if (existingTimer) clearTimeout(existingTimer)
-          clearTimers.set(
-            otherId,
-            setTimeout(() => {
-              setTypingIds((current) => {
-                const next = new Set(current)
-                next.delete(otherId)
-                return next
-              })
-            }, TYPING_CLEAR_MS),
-          )
-        })
-        .subscribe((status) => {
-          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            reportDatabaseReadError('канал статуса набора текста в списке недоступен', { status, otherId })
-          }
-        })
-      return channel
-    })
-
+    void load()
+    const timer = setInterval(() => void load(), 2000)
+    document.addEventListener('visibilitychange', visibility)
     return () => {
-      clearTimers.forEach((timer) => clearTimeout(timer))
-      channels.forEach((channel) => supabase.removeChannel(channel))
+      cancelled = true
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', visibility)
     }
-  }, [currentUserId, matchIdsKey])
-
+  }, [currentUserId, key])
   return typingIds
 }
