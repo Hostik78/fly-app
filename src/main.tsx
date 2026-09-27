@@ -4,6 +4,7 @@ import './index.css'
 import App from './App.tsx'
 import { applyTheme, getStoredTheme } from './lib/theme'
 import { markLoadingSkipAfterAutoUpdate } from './lib/loadingLifecycle'
+import { installStaleDeploymentRecovery } from './lib/staleDeploymentRecovery'
 
 // Подготовка двух dev-документов до первого кадра: внешний документ становится
 // рабочей областью симулятора, внутренний iframe получает безопасные зоны выбранной
@@ -42,6 +43,15 @@ if (import.meta.env.DEV) {
 // на телефоне со светлой системной настройкой на долю секунды мелькнул бы
 // неправильный (светлый) вариант, прежде чем применился бы нужный.
 applyTheme(getStoredTheme())
+
+// Если долго открытая вкладка пережила публикацию новой версии, старый код мог
+// запросить уже удалённый файл сборки и оставить человека на пустом экране.
+// В таком случае сначала просим браузер проверить обновление, затем один раз
+// перезагружаем приложение уже на свежей версии.
+installStaleDeploymentRecovery(() => {
+  markLoadingSkipAfterAutoUpdate()
+  window.location.reload()
+})
 
 // Автообновление приложения без ручной перезагрузки. Раньше выход новой
 // версии сайта подхватывался только при СЛЕДУЮЩЕМ заходе в приложение (закрыть
