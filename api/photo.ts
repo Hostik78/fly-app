@@ -89,8 +89,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       bytes.length > MAX_BYTES ||
       bytes[0] !== 255 ||
       bytes[1] !== 216 ||
-      bytes.at(-2) !== 255 ||
-      bytes.at(-1) !== 217
+      bytes[bytes.length - 2] !== 255 ||
+      bytes[bytes.length - 1] !== 217
     ) {
       res.status(400).json({ error: 'invalid image' })
       return
