@@ -1,4 +1,3 @@
-import { Suspense } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { GridIcon, MessageIcon, AccountIcon } from './icons'
 import { useOnlinePresence } from '../lib/useOnlinePresence'
@@ -45,14 +44,10 @@ export function AppShell({ currentUserId, hasPosted }: AppShellProps) {
 
       {/* Сюда React Router подставляет текущий экран (Лента/Сообщения/Аккаунт).
           context передаёт currentUserId вниз, не проходя его через пропсы каждого маршрута.
-          Suspense - именно здесь, а не выше по дереву (в App.tsx): AccountScreen грузится
-          отдельным кусочком кода (lazy, см. App.tsx) - если бы граница ожидания стояла
-          выше, на время его догрузки пропадала бы вообще вся навигация ниже (строка
-          статуса и нижние вкладки), а не только сама вкладка. */}
+          Экраны навигации подключены синхронно, поэтому ошибка перехода не может
+          превратиться в пустой экран ожидания. */}
       <div className="min-h-0 flex-1 overflow-hidden">
-        <Suspense fallback={<div className="h-full w-full" />}>
-          <Outlet context={{ currentUserId, hasPosted, onlineUserIds, presenceStatusKnown } satisfies AppOutletContext} />
-        </Suspense>
+        <Outlet context={{ currentUserId, hasPosted, onlineUserIds, presenceStatusKnown } satisfies AppOutletContext} />
       </div>
 
       {/* Нижняя навигация — не скроллится и не сжимается, всегда видна.

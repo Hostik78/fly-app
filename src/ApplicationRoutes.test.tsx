@@ -37,4 +37,8 @@ describe('навигация нового пользователя вне аэр
     expect(html).toContain('615')
     expect(html).toContain('href="/account"')
   })
+  it('сразу показывает аккаунт при переходе с нижней навигации', async () => {
+    const html = await renderRoute('/account', true)
+    expect(html).toContain('Мой аккаунт')
+  })
 })

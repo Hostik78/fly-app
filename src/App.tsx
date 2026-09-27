@@ -6,6 +6,7 @@ import { AppShell } from './components/AppShell'
 import { CreateStatusScreen } from './components/CreateStatusScreen'
 import { LoginScreen } from './components/LoginScreen'
 import { ProfileSetupScreen } from './components/ProfileSetupScreen'
+import { AccountScreen } from './components/AccountScreen'
 import { NotAtAirportScreen } from './components/NotAtAirportScreen'
 import { LoadingScreen } from './components/LoadingScreen'
 import { useSession } from './lib/useSession'
@@ -39,21 +40,15 @@ const splashPreviewTheme = import.meta.env.DEV
 const isSplashPreview = splashPreviewTheme === 'light' || splashPreviewTheme === 'dark'
 if (isSplashPreview) document.documentElement.dataset.theme = splashPreviewTheme
 
-// lazy(...) - только AccountScreen: нужен не всем и не сразу (только по клику
-// на вкладку "Аккаунт"), поэтому его код браузер скачает отдельным кусочком,
-// когда он реально понадобится (граница ожидания - Suspense - стоит внутри
-// AppShell.tsx, вокруг <Outlet/>, а не здесь - см. её комментарий там: если
-// поставить границу тут, на время догрузки пропадала бы вообще вся нижняя
-// навигация, а не только содержимое вкладки).
-//
-// ProfileSetupScreen и CreateStatusScreen раньше тоже были lazy, но это оказалось
+// ProfileSetupScreen и CreateStatusScreen раньше были lazy, но это оказалось
 // плохим компромиссом: это не "редко нужные" экраны, а ОБЯЗАТЕЛЬНЫЙ шаг для 100%
 // новых людей сразу после входа, один за другим - и именно в этот момент (первое
 // впечатление) стало на одну-две лишних паузы с пустым экраном больше, а видимая
 // экономия у самих этих двух экранов небольшая. Вернули на обычную загрузку.
-// Именованный экспорт (export function X) оборачиваем в .then(...), потому что
-// lazy() ожидает export default - у наших компонентов его нет.
-const AccountScreen = lazy(() => import('./components/AccountScreen').then((m) => ({ default: m.AccountScreen })))
+// Аккаунт тоже загружается обычным импортом: это основная вкладка нижней навигации,
+// и при отложенной загрузке сбой отдельного чанка превращался в полностью пустой
+// экран без сообщения об ошибке. Надёжный переход важнее небольшой экономии
+// нескольких килобайт на первом кадре.
 
 // Сам симулятор загружается отдельным dev-only куском. В production условие DEV
 // заранее превращается в false, поэтому ни его JavaScript, ни отдельный CSS-файл
