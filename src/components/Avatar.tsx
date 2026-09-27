@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { getAvatarUrl } from '../lib/avatar'
+import { usePrivatePhoto } from '../lib/usePrivatePhoto'
 import { getGenderColor } from '../lib/genderColor'
 
 interface AvatarProps {
@@ -11,31 +11,21 @@ interface AvatarProps {
   className?: string
 }
 
-// Общая логика "фото или цветной кружок" - раньше в каждом из трёх мест
-// (ProfileCard, MessagesScreen, ChatScreen) был просто цветной кружок по полу
-// (см. genderColor.ts), теперь везде одинаково: настоящее фото, если человек
-// его загрузил (см. avatar.ts - публичный бакет, путь по user_id), иначе тот
-// же цветной кружок, что и был - <img onError>/<img onLoad> сами решают,
-// какой вариант показать, отдельно спрашивать базу "есть ли фото" не нужно
-// (см. AccountScreen.tsx, тот же приём для своего же фото).
-//
-// Цветной кружок - нижний слой и виден сразу же, без задержки. Настоящее фото
-// (если оно есть) отдельным слоем поверх, невидимое, пока по-настоящему не
-// подгрузится - и тогда плавно проявляется. Раньше сначала пытались показать
-// только <img>, а цветной кружок появлялся лишь после неудачной попытки - то
-// есть на месте кружка какое-то время было просто пусто.
+// Единое защищённое фото для ленты, списка и переписки.
 export function Avatar({ userId, gender, className = '' }: AvatarProps) {
-  const [broken, setBroken] = useState(false)
+  const photo = usePrivatePhoto(userId)
+  const [broken, setBroken] = useState<string | null>(null)
   const [loaded, setLoaded] = useState(false)
 
   return (
     <div className={`${className} relative overflow-hidden`}>
       <div className="absolute inset-0" style={{ backgroundColor: getGenderColor(gender) }} />
-      {!broken && (
+      {photo && broken !== photo && (
         <img
-          src={getAvatarUrl(userId)}
+          src={photo}
+          key={photo}
           onLoad={() => setLoaded(true)}
-          onError={() => setBroken(true)}
+          onError={() => setBroken(photo)}
           alt=""
           // loading="lazy" - стандартная браузерная подсказка "качай, только когда
           // картинка подъедет к видимой области экрана". В ленте бывает до полусотни
