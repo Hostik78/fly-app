@@ -6,6 +6,7 @@
 
 import { useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { isLikelyEmail } from '../lib/email'
 
 export function LoginScreen() {
   const [email, setEmail] = useState('')
@@ -16,7 +17,7 @@ export function LoginScreen() {
 
   async function handleSendLink() {
     const trimmedEmail = email.trim()
-    if (!trimmedEmail || sendingRef.current) return
+    if (!isLikelyEmail(trimmedEmail) || sendingRef.current) return
 
     sendingRef.current = true
     setSending(true)
@@ -99,7 +100,7 @@ export function LoginScreen() {
       />
       <button
         type="submit"
-        disabled={!email.trim() || sending}
+        disabled={!isLikelyEmail(email) || sending}
         className="w-full max-w-xs py-3.5 rounded-fly-md bg-fly-solid text-fly-solid-text font-semibold text-sm transition-opacity disabled:opacity-30"
       >
         {sending ? 'Отправляем…' : 'Прислать ссылку для входа'}
